@@ -1,0 +1,117 @@
+.card {
+  width: 80px;
+  height: 112px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  position: relative;
+  display: inline-block;
+  margin: 4px;
+  transition: transform 0.2s;
+  border: 2px solid #ddd;
+}
+
+.card.small {
+  width: 50px;
+  height: 70px;
+  border-radius: 5px;
+  margin: 2px;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+}
+
+.card.empty {
+  background: transparent;
+  border: 2px dashed #666;
+  box-shadow: none;
+}
+
+.card.back {
+  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+  border-color: #1e3c72;
+}
+
+.card-pattern {
+  width: 100%;
+  height: 100%;
+  background-image:
+    repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,.1) 10px, rgba(255,255,255,.1) 20px),
+    repeating-linear-gradient(-45deg, transparent, transparent 10px, rgba(255,255,255,.1) 10px, rgba(255,255,255,.1) 20px);
+}
+
+.card-corner {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-weight: bold;
+}
+
+.card-corner.top-left {
+  top: 6px;
+  left: 6px;
+}
+
+.card-corner.bottom-right {
+  bottom: 6px;
+  right: 6px;
+  transform: rotate(180deg);
+}
+
+.card.small .card-corner {
+  font-size: 10px;
+}
+
+.card.small .card-corner.top-left {
+  top: 3px;
+  left: 3px;
+}
+
+.card.small .card-corner.bottom-right {
+  bottom: 3px;
+  right: 3px;
+}
+
+.rank {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.card.small .rank {
+  font-size: 12px;
+}
+
+.suit {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.card.small .suit {
+  font-size: 10px;
+}
+
+.card.red {
+  color: #e74c3c;
+}
+
+.card.black {
+  color: #2c3e50;
+}
+
+.card-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.suit-large {
+  font-size: 48px;
+  opacity: 0.3;
+}
+
+.card.small .suit-large {
+  font-size: 28px;
+}

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PokerLite - Texas Hold'em</title>
+    <link rel="stylesheet" href="/static/css/poker.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>♠️ PokerLite ♥️</h1>
+            <div class="connection-controls">
+                <input type="text" id="playerName" placeholder="Your name" value="Player">
+                <input type="text" id="tableId" placeholder="Table ID" value="default">
+                <button id="connectBtn" class="btn-primary">Connect</button>
+                <button id="disconnectBtn" class="btn-secondary">Disconnect</button>
+                <button id="newPlayerBtn" class="btn-secondary">New Player</button>
+                <span id="connectionStatus">Disconnected</span>
+            </div>
+        </header>
+
+        <main>
+            <div class="poker-table">
+                <!-- Community cards in center -->
+                <div class="community-cards">
+                    <div class="pot-display">
+                        <div class="pot-label">POT</div>
+                        <div class="pot-amount">$<span id="potAmount">0</span></div>
+                    </div>
+                    <div id="boardCards" class="board-cards"></div>
+                    <div class="street-indicator" id="streetIndicator">Waiting...</div>
+                </div>
+
+                <!-- Player seats around table -->
+                <div id="playerSeats" class="player-seats">
+                    <!-- Players will be dynamically added here -->
+                </div>
+
+                <!-- Your hand -->
+                <div class="player-hand">
+                    <div class="hand-label">Your Hand</div>
+                    <div id="holeCards" class="hole-cards"></div>
+                    <div class="player-info">
+                        <div class="stack">Stack: $<span id="playerStack">0</span></div>
+                        <div class="to-call">To Call: $<span id="toCall">0</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action controls -->
+            <div class="action-controls">
+                <button id="startBtn" class="btn-action btn-success">Start Hand</button>
+                <button id="foldBtn" class="btn-action btn-danger">Fold</button>
+                <button id="checkBtn" class="btn-action btn-info">Check</button>
+                <button id="callBtn" class="btn-action btn-warning">Call $<span id="callAmount">0</span></button>
+                <div class="raise-controls">
+                    <input type="number" id="raiseAmount" placeholder="Amount" value="20" min="10">
+                    <button id="raiseBtn" class="btn-action btn-primary">Raise</button>
+                </div>
+            </div>
+        </main>
+
+        <!-- Game log (collapsible) -->
+        <aside class="game-log">
+            <button class="log-toggle" id="logToggle">📜 Game Log</button>
+            <div class="log-content" id="logContent"></div>
+        </aside>
+    </div>
+
+    <script type="module" src="/static/js/poker-client.js"></script>
+</body>
+</html>

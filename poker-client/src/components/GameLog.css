@@ -1,0 +1,80 @@
+.game-log {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 1000;
+}
+
+.log-toggle {
+  background: #34495e;
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px 8px 0 0;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background 0.2s;
+}
+
+.log-toggle:hover {
+  background: #2c3e50;
+}
+
+.game-log.open .log-toggle {
+  border-radius: 8px 8px 0 0;
+}
+
+.log-content {
+  background: rgba(52, 73, 94, 0.95);
+  color: white;
+  padding: 16px;
+  border-radius: 8px 0 0 0;
+  max-height: 300px;
+  width: 400px;
+  overflow-y: auto;
+  box-shadow: 0 -4px 12px rgba(0,0,0,0.3);
+}
+
+.log-entry {
+  padding: 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  display: flex;
+  gap: 12px;
+  font-size: 14px;
+}
+
+.log-time {
+  color: #95a5a6;
+  font-size: 12px;
+  min-width: 80px;
+}
+
+.log-message {
+  flex: 1;
+}
+
+.log-empty {
+  text-align: center;
+  padding: 20px;
+  color: #95a5a6;
+  font-style: italic;
+}
+
+/* Scrollbar styling */
+.log-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.log-content::-webkit-scrollbar-track {
+  background: rgba(0,0,0,0.2);
+  border-radius: 4px;
+}
+
+.log-content::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.3);
+  border-radius: 4px;
+}
+
+.log-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.5);
+}

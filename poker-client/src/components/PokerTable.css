@@ -1,0 +1,157 @@
+.poker-table-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  position: relative;
+}
+
+.poker-table {
+  background: radial-gradient(ellipse at center, #1a1a2e 0%, #0f0f1e 100%);
+  border: 12px solid transparent;
+  background-image:
+    radial-gradient(ellipse at center, #1a1a2e 0%, #0f0f1e 100%),
+    linear-gradient(135deg, #00f5ff 0%, #ff00ff 100%);
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+  border-radius: 50%;
+  width: 800px;
+  height: 500px;
+  margin: 0 auto;
+  position: relative;
+  box-shadow:
+    inset 0 0 60px rgba(0, 255, 255, 0.2),
+    0 0 40px rgba(0, 255, 255, 0.3),
+    0 8px 32px rgba(0, 0, 0, 0.6);
+}
+
+.table-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  z-index: 10;
+}
+
+.pot-display {
+  background: rgba(0, 0, 0, 0.7);
+  padding: 12px 24px;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  border: 2px solid rgba(0, 245, 255, 0.3);
+  box-shadow: 0 0 20px rgba(0, 245, 255, 0.2);
+}
+
+.pot-label {
+  color: #00f5ff;
+  font-weight: bold;
+  font-size: 14px;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.pot-amount {
+  background: linear-gradient(135deg, #00f5ff 0%, #00ff88 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-size: 32px;
+  font-weight: bold;
+  text-shadow: 0 0 20px rgba(0, 245, 255, 0.5);
+}
+
+.community-cards {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  margin: 16px 0;
+  min-height: 112px;
+  align-items: center;
+}
+
+.no-cards {
+  color: rgba(255,255,255,0.5);
+  font-style: italic;
+}
+
+.street-indicator {
+  background: rgba(0, 0, 0, 0.8);
+  color: #00f5ff;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-weight: bold;
+  text-transform: uppercase;
+  font-size: 14px;
+  margin-top: 8px;
+  border: 2px solid rgba(0, 245, 255, 0.5);
+  box-shadow: 0 0 15px rgba(0, 245, 255, 0.3);
+  letter-spacing: 1px;
+}
+
+.other-players {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+}
+
+.player-seat {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform-origin: center;
+}
+
+.my-hand {
+  position: absolute;
+  bottom: -180px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  z-index: 50;
+}
+
+.my-cards {
+  display: flex;
+  gap: 8px;
+}
+
+.my-info {
+  display: flex;
+  gap: 24px;
+  background: rgba(0, 0, 0, 0.8);
+  padding: 12px 24px;
+  border-radius: 8px;
+  color: white;
+  border: 2px solid rgba(0, 245, 255, 0.3);
+  box-shadow: 0 0 20px rgba(0, 245, 255, 0.2);
+}
+
+.info-item {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.info-item .label {
+  color: #00f5ff;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.info-item .value {
+  font-weight: bold;
+  font-size: 18px;
+  background: linear-gradient(135deg, #00ff88 0%, #00f5ff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}

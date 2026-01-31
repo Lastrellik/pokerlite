@@ -1,0 +1,91 @@
+.connection-panel {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 8px;
+  border: 2px solid rgba(0, 245, 255, 0.3);
+}
+
+.connection-inputs {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.connection-inputs input {
+  padding: 8px 12px;
+  border: 2px solid rgba(0, 245, 255, 0.5);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.7);
+  color: #00f5ff;
+  font-size: 14px;
+}
+
+.connection-inputs input::placeholder {
+  color: rgba(0, 245, 255, 0.5);
+}
+
+.connection-inputs input:focus {
+  outline: none;
+  border-color: #00f5ff;
+  box-shadow: 0 0 15px rgba(0, 245, 255, 0.3);
+}
+
+.connection-inputs input:disabled {
+  background: rgba(0, 0, 0, 0.5);
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.connection-inputs button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-connect {
+  background: linear-gradient(135deg, #00ff88 0%, #00cc6a 100%);
+  color: white;
+  box-shadow: 0 0 15px rgba(0, 255, 136, 0.4);
+}
+
+.btn-connect:hover {
+  box-shadow: 0 0 25px rgba(0, 255, 136, 0.6);
+}
+
+.btn-disconnect {
+  background: linear-gradient(135deg, #ff006e 0%, #ff4d00 100%);
+  color: white;
+  box-shadow: 0 0 15px rgba(255, 0, 110, 0.4);
+}
+
+.btn-disconnect:hover {
+  box-shadow: 0 0 25px rgba(255, 0, 110, 0.6);
+}
+
+.btn-new-player {
+  background: linear-gradient(135deg, #00d4ff 0%, #0099ff 100%);
+  color: white;
+  box-shadow: 0 0 15px rgba(0, 212, 255, 0.4);
+}
+
+.btn-new-player:hover {
+  box-shadow: 0 0 25px rgba(0, 212, 255, 0.6);
+}
+
+.connection-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: white;
+  font-weight: 500;
+}
+
+.status-indicator {
+  font-size: 20px;
+}
