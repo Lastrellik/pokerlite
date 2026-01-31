@@ -2,6 +2,8 @@
 
 A real-time multiplayer poker application built with FastAPI (Python) and React.
 
+> **Note**: This project was developed with AI assistance using Claude Code, demonstrating modern AI-augmented development workflows. See commit history for co-authorship details.
+
 ## Features
 
 - Real-time multiplayer Texas Hold'em poker
@@ -258,11 +260,28 @@ Future enhancements planned:
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit issues and pull requests.
+Contributions are welcome! This is a learning/demonstration project and PRs for new features, bug fixes, or improvements are appreciated.
+
+### Areas for Contribution
+- Tournament mode
+- Chat functionality
+- PostgreSQL integration
+- User authentication
+- Player statistics and leaderboards
+- Mobile responsive improvements
+- Performance optimizations
 
 ## License
 
-[Add your license here]
+MIT License - see [LICENSE](LICENSE) file for details.
+
+This is free and open source software. You can use it for any purpose, including commercial projects.
+
+## Disclaimer
+
+⚠️ **Educational/Entertainment Project**
+
+This is a learning and demonstration project. Not intended for real money gambling. Use at your own risk.
 
 ## Support
 
