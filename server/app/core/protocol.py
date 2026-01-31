@@ -20,6 +20,7 @@ def public_state(table: TableState, viewer_pid: Optional[str] = None) -> dict:
                 "connected": p.connected,
             }
             for p in sorted(table.players.values(), key=lambda x: x.seat)
+            if p.connected  # Only show connected players
         ],
 
         "hand_in_progress": table.hand_in_progress,

@@ -4,7 +4,7 @@ const PokerGameContext = createContext()
 
 export function PokerGameProvider({ children }) {
   const [connected, setConnected] = useState(false)
-  const [myPid, setMyPid] = useState(localStorage.getItem('pokerlite_pid') || null)
+  const [myPid, setMyPid] = useState(null)
   const [gameState, setGameState] = useState(null)
   const [logs, setLogs] = useState([])
   const [handResult, setHandResult] = useState(null)
@@ -19,7 +19,11 @@ export function PokerGameProvider({ children }) {
       wsRef.current.close()
     }
 
-    const ws = new WebSocket(`ws://localhost:8000/ws/${tableId}`)
+    // Use environment variable or fallback to window.location for production
+    const wsBaseUrl = import.meta.env.VITE_WS_URL ||
+                      `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`
+
+    const ws = new WebSocket(`${wsBaseUrl}/ws/${tableId}`)
     wsRef.current = ws
 
     ws.onopen = () => {
@@ -27,7 +31,7 @@ export function PokerGameProvider({ children }) {
       ws.send(JSON.stringify({
         type: 'join',
         name: playerName,
-        pid: myPid
+        pid: null  // Always get a new player ID for each connection
       }))
       setConnected(true)
       addLog(`Connected to table: ${tableId}`)
@@ -39,7 +43,6 @@ export function PokerGameProvider({ children }) {
 
         if (msg.type === 'welcome') {
           setMyPid(msg.pid)
-          localStorage.setItem('pokerlite_pid', msg.pid)
           addLog(`Joined as ${playerName} (${msg.pid.substring(0, 8)})`)
         } else if (msg.type === 'state') {
           setGameState(msg.state)
@@ -63,7 +66,7 @@ export function PokerGameProvider({ children }) {
     ws.onerror = () => {
       addLog('Connection error')
     }
-  }, [myPid, addLog])
+  }, [addLog])
 
   const disconnect = useCallback(() => {
     if (wsRef.current) {
@@ -72,12 +75,6 @@ export function PokerGameProvider({ children }) {
     }
     setConnected(false)
   }, [])
-
-  const clearPlayerId = useCallback(() => {
-    setMyPid(null)
-    localStorage.removeItem('pokerlite_pid')
-    addLog('Player ID cleared - you will get a new ID on reconnect')
-  }, [addLog])
 
   const sendAction = useCallback((action, amount = null) => {
     if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
@@ -124,7 +121,6 @@ export function PokerGameProvider({ children }) {
     handResult,
     connect,
     disconnect,
-    clearPlayerId,
     sendAction,
     startHand,
     clearHandResult

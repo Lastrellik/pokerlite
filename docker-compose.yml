@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  pokerlite:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8000
+      # Add these when you implement them later:
+      # - DATABASE_URL=postgresql://user:password@postgres:5432/pokerlite
+      # - REDIS_URL=redis://redis:6379
+      # - SECRET_KEY=your-secret-key
+    # Uncomment when you add database later:
+    # depends_on:
+    #   - postgres
+    #   - redis
+    restart: unless-stopped
+
+  # Uncomment when you're ready to add PostgreSQL:
+  # postgres:
+  #   image: postgres:15-alpine
+  #   environment:
+  #     - POSTGRES_USER=pokerlite
+  #     - POSTGRES_PASSWORD=pokerlite
+  #     - POSTGRES_DB=pokerlite
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   ports:
+  #     - "5432:5432"
+
+  # Uncomment when you're ready to add Redis:
+  # redis:
+  #   image: redis:7-alpine
+  #   ports:
+  #     - "6379:6379"
+  #   volumes:
+  #     - redis_data:/data
+
+# Uncomment when adding persistence:
+# volumes:
+#   postgres_data:
+#   redis_data:

@@ -1,0 +1,42 @@
+# Environment variables
+.env
+.env.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+server/.venv/
+server/venv/
+*.egg-info/
+dist/
+build/
+
+# Node
+poker-client/node_modules/
+poker-client/dist/
+poker-client/.vite/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Database
+*.db
+*.sqlite
+
+# Static files (generated during build)
+server/static/

@@ -1,0 +1,58 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+server/.venv/
+server/venv/
+*.egg-info/
+
+# Node
+poker-client/node_modules/
+poker-client/dist/
+poker-client/.vite/
+
+# Environment files
+.env
+.env.local
+poker-client/.env
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Test files
+server/test_*.py
+server/stress_test.py
+server/validate_hands.py
+
+# Documentation
+README.md
+*.md
+
+# Development scripts
+dev-setup.sh
+dev-start.sh
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Static files (will be built in Docker)
+server/static/

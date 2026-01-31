@@ -3,7 +3,7 @@ import { usePokerGame } from '../hooks/usePokerGame.jsx'
 import './ConnectionPanel.css'
 
 function ConnectionPanel() {
-  const { connected, myPid, connect, disconnect, clearPlayerId } = usePokerGame()
+  const { connected, myPid, connect, disconnect } = usePokerGame()
   const [playerName, setPlayerName] = useState('Player')
   const [tableId, setTableId] = useState('default')
 
@@ -11,11 +11,6 @@ function ConnectionPanel() {
     if (playerName && tableId) {
       connect(playerName, tableId)
     }
-  }
-
-  const handleNewPlayer = () => {
-    disconnect()
-    clearPlayerId()
   }
 
   return (
@@ -44,9 +39,6 @@ function ConnectionPanel() {
             Disconnect
           </button>
         )}
-        <button onClick={handleNewPlayer} className="btn-new-player">
-          New Player
-        </button>
       </div>
       <div className="connection-status">
         <span className={`status-indicator ${connected ? 'connected' : 'disconnected'}`}>
