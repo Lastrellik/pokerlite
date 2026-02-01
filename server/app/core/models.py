@@ -1,7 +1,15 @@
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
+from enum import Enum
 import asyncio
 from fastapi import WebSocket
+
+
+class PlayerRole(str, Enum):
+    SEATED = "seated"
+    SPECTATOR = "spectator"
+    WAITLIST = "waitlist"
+
 
 @dataclass
 class Player:
@@ -10,6 +18,7 @@ class Player:
     stack: int = 1000
     seat: int = 0
     connected: bool = True
+    role: PlayerRole = PlayerRole.SEATED
 
 @dataclass
 class TableState:
@@ -48,20 +57,51 @@ class TableState:
     # Runout mode (all players all-in, dealing remaining streets with delays)
     runout_in_progress: bool = False
 
+    # Player management
+    waitlist: list[str] = field(default_factory=list)  # PIDs in FIFO order
+    spectator_pids: set[str] = field(default_factory=set)  # PIDs of spectators
 
-    def upsert_player(self, pid: str, name: str) -> Player:
-        if pid not in self.players:
-            used_seats = {p.seat for p in self.players.values()}
-            seat = 1
-            while seat in used_seats:
-                seat += 1
-            self.players[pid] = Player(pid=pid, name=name, seat=seat, connected=True)
-        else:
+
+    def upsert_player(self, pid: str, name: str, force_spectator: bool = False) -> Player:
+        from .constants import MAX_PLAYERS, DEFAULT_STARTING_STACK
+
+        if pid in self.players:
+            # Reconnecting player - keep their role
             p = self.players[pid]
             p.connected = True
             p.name = name
-        return self.players[pid]
+            return p
+
+        # New player - determine role
+        seated_count = sum(
+            1 for p in self.players.values()
+            if p.role == PlayerRole.SEATED and p.connected
+        )
+
+        if force_spectator or seated_count >= MAX_PLAYERS or self.hand_in_progress:
+            # Add as spectator
+            player = Player(
+                pid=pid, name=name, seat=0, stack=0,
+                role=PlayerRole.SPECTATOR, connected=True
+            )
+            self.spectator_pids.add(pid)
+        else:
+            # Seat the player
+            used_seats = {p.seat for p in self.players.values() if p.role == PlayerRole.SEATED}
+            seat = 1
+            while seat in used_seats:
+                seat += 1
+            player = Player(
+                pid=pid, name=name, seat=seat, stack=DEFAULT_STARTING_STACK,
+                role=PlayerRole.SEATED, connected=True
+            )
+
+        self.players[pid] = player
+        return player
 
     def mark_disconnected(self, pid: str) -> None:
         if pid in self.players:
             self.players[pid].connected = False
+            # Remove from waitlist if they were waiting
+            if pid in self.waitlist:
+                self.waitlist.remove(pid)

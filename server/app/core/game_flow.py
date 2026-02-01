@@ -334,8 +334,23 @@ def run_showdown(table: TableState) -> str:
 
 
 def _end_hand(table: TableState) -> None:
-    """Clean up hand state."""
+    """Clean up hand state and handle player transitions."""
+    from .models import PlayerRole
+    from .waitlist import promote_from_waitlist
+
     table.hand_in_progress = False
     table.current_turn_pid = None
     table.pot = 0
     table.board = []
+
+    # Convert busted players (stack=0) to spectators
+    for player in table.players.values():
+        if player.role == PlayerRole.SEATED and player.stack == 0:
+            player.role = PlayerRole.SPECTATOR
+            player.seat = 0
+            table.spectator_pids.add(player.pid)
+
+    # Promote from waitlist if seats available
+    promoted_pid = promote_from_waitlist(table)
+    while promoted_pid:
+        promoted_pid = promote_from_waitlist(table)

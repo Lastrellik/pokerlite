@@ -2,11 +2,12 @@
 Player action handlers.
 """
 from typing import Dict, Any, Optional
-from .models import TableState
+from .models import TableState, PlayerRole
 from .player_utils import active_pids
 from .betting import process_call, process_raise, is_betting_complete
 from .game_flow import advance_turn, advance_street, run_showdown, start_new_hand, check_turn_timeout
 from .constants import VALID_ACTIONS
+from .waitlist import join_waitlist, leave_waitlist
 
 
 async def handle_message(table: TableState, pid: str, msg: Dict[str, Any]) -> Optional[str]:
@@ -15,6 +16,21 @@ async def handle_message(table: TableState, pid: str, msg: Dict[str, Any]) -> Op
     Returns optional info message to broadcast.
     """
     mtype = msg.get("type")
+    player = table.players.get(pid)
+
+    if mtype == "join_waitlist":
+        if join_waitlist(table, pid):
+            return f"{player.name} joined the waitlist"
+        return None
+
+    if mtype == "leave_waitlist":
+        if leave_waitlist(table, pid):
+            return f"{player.name} left the waitlist"
+        return None
+
+    # Only seated players can start hands or take actions
+    if player and player.role != PlayerRole.SEATED:
+        return None
 
     if mtype == "start":
         start_new_hand(table)

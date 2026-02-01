@@ -4,10 +4,25 @@ import Card from './Card'
 import Player from './Player'
 import ActionButtons from './ActionButtons'
 import GameLog from './GameLog'
+import SpectatorPanel from './SpectatorPanel'
 import './PokerTable.css'
 
+// Ellipse dimensions for player positioning
+const ELLIPSE_A = 320  // Semi-major axis (horizontal)
+const ELLIPSE_B = 190  // Semi-minor axis (vertical)
+
+// Calculate position on ellipse
+const getEllipsePosition = (index, total) => {
+  // Start from top (-PI/2) and go clockwise
+  const angle = (2 * Math.PI * index / total) - Math.PI / 2
+  return {
+    x: ELLIPSE_A * Math.cos(angle),
+    y: ELLIPSE_B * Math.sin(angle),
+  }
+}
+
 function PokerTable() {
-  const { gameState, myPid, handResult } = usePokerGame()
+  const { gameState, myPid, handResult, joinWaitlist, leaveWaitlist } = usePokerGame()
 
   const myPlayer = useMemo(() => {
     if (!gameState || !myPid) return null
@@ -321,12 +336,14 @@ function PokerTable() {
 
         {/* Other players around the table */}
         <div className="other-players">
-          {otherPlayers.map((player, idx) => (
+          {otherPlayers.map((player, idx) => {
+            const pos = getEllipsePosition(idx, Math.max(otherPlayers.length, 1))
+            return (
             <div
               key={player.pid}
               className={`player-seat seat-${idx}`}
               style={{
-                transform: `rotate(${(360 / Math.max(otherPlayers.length, 1)) * idx}deg) translateY(-200px) rotate(-${(360 / Math.max(otherPlayers.length, 1)) * idx}deg)`
+                transform: `translate(${pos.x}px, ${pos.y}px)`
               }}
             >
               <Player
@@ -346,12 +363,12 @@ function PokerTable() {
                 lastAction={displayedAction?.pid === player.pid ? displayedAction.action : null}
               />
             </div>
-          ))}
+          )})}
         </div>
       </div>
 
-      {/* Your hand at the bottom */}
-      {myPlayer && (
+      {/* Your hand at the bottom - only for seated players */}
+      {myPlayer && gameState?.my_role === 'seated' && (
         <div className="my-hand">
           <Player
             player={myPlayer}
@@ -398,6 +415,16 @@ function PokerTable() {
             turnDeadline={gameState?.turn_deadline}
           />
         </div>
+      )}
+
+      {/* Spectator/Waitlist panel for non-seated players */}
+      {gameState?.my_role && gameState.my_role !== 'seated' && (
+        <SpectatorPanel
+          role={gameState.my_role}
+          waitlistPosition={gameState.waitlist_position}
+          onJoinWaitlist={joinWaitlist}
+          onLeaveWaitlist={leaveWaitlist}
+        />
       )}
 
       {/* Game log */}

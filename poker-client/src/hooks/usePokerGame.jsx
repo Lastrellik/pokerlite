@@ -101,6 +101,26 @@ export function PokerGameProvider({ children }) {
     addLog('Started new hand')
   }, [addLog])
 
+  const joinWaitlist = useCallback(() => {
+    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+      addLog('Not connected!')
+      return
+    }
+
+    wsRef.current.send(JSON.stringify({ type: 'join_waitlist' }))
+    addLog('Joining waitlist...')
+  }, [addLog])
+
+  const leaveWaitlist = useCallback(() => {
+    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+      addLog('Not connected!')
+      return
+    }
+
+    wsRef.current.send(JSON.stringify({ type: 'leave_waitlist' }))
+    addLog('Leaving waitlist...')
+  }, [addLog])
+
   const clearHandResult = useCallback(() => {
     setHandResult(null)
   }, [])
@@ -123,6 +143,8 @@ export function PokerGameProvider({ children }) {
     disconnect,
     sendAction,
     startHand,
+    joinWaitlist,
+    leaveWaitlist,
     clearHandResult
   }
 

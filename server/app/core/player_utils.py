@@ -2,19 +2,19 @@
 Player utility functions for poker.
 """
 from typing import List
-from .models import TableState, Player
+from .models import TableState, Player, PlayerRole
 
 
 def connected_players(table: TableState) -> List[Player]:
-    """Get all connected players sorted by seat."""
+    """Get all connected SEATED players sorted by seat."""
     return [
         p for p in sorted(table.players.values(), key=lambda x: x.seat)
-        if p.connected
+        if p.connected and p.role == PlayerRole.SEATED
     ]
 
 
 def eligible_players(table: TableState) -> List[Player]:
-    """Get connected players with chips to play (stack > 0)."""
+    """Get connected seated players with chips to play (stack > 0)."""
     return [
         p for p in connected_players(table)
         if p.stack > 0
@@ -22,12 +22,12 @@ def eligible_players(table: TableState) -> List[Player]:
 
 
 def connected_pids(table: TableState) -> List[str]:
-    """Get PIDs of connected players."""
+    """Get PIDs of connected seated players."""
     return [p.pid for p in connected_players(table)]
 
 
 def active_players(table: TableState) -> List[Player]:
-    """Get connected players who haven't folded."""
+    """Get connected seated players who haven't folded."""
     return [
         p for p in connected_players(table)
         if p.pid not in table.folded_pids
@@ -35,7 +35,7 @@ def active_players(table: TableState) -> List[Player]:
 
 
 def active_pids(table: TableState) -> List[str]:
-    """Get PIDs of active (connected, not folded) players."""
+    """Get PIDs of active (connected, seated, not folded) players."""
     return [p.pid for p in active_players(table)]
 
 
