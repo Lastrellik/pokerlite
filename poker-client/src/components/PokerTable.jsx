@@ -1,14 +1,13 @@
-import { useMemo, useCallback } from 'react'
+import { useMemo, useCallback, useState, useEffect, useRef } from 'react'
 import { usePokerGame } from '../hooks/usePokerGame.jsx'
 import Card from './Card'
 import Player from './Player'
 import ActionButtons from './ActionButtons'
 import GameLog from './GameLog'
-import HandResultModal from './HandResultModal'
 import './PokerTable.css'
 
 function PokerTable() {
-  const { gameState, myPid, handResult, clearHandResult } = usePokerGame()
+  const { gameState, myPid, handResult } = usePokerGame()
 
   const myPlayer = useMemo(() => {
     if (!gameState || !myPid) return null
@@ -52,6 +51,96 @@ function PokerTable() {
     )
   }, [gameState?.showdown])
 
+  // Track showdown phases: 'flipping' -> 'revealing' -> 'showModal'
+  const [showdownPhase, setShowdownPhase] = useState(null) // null | 'flipping' | 'revealing' | 'showModal'
+  const prevShowdownRef = useRef(null)
+
+  useEffect(() => {
+    const hasShowdown = !!gameState?.showdown
+    const hadShowdown = prevShowdownRef.current
+
+    if (hasShowdown && !hadShowdown) {
+      // New showdown started
+      prevShowdownRef.current = true
+      setShowdownPhase('flipping')
+
+      // After 3 seconds, highlight the winning cards
+      const revealTimer = setTimeout(() => {
+        setShowdownPhase('revealing')
+      }, 3000)
+
+      // After 6 seconds (3s more), show the modal
+      const modalTimer = setTimeout(() => {
+        setShowdownPhase('showModal')
+      }, 6000)
+
+      return () => {
+        clearTimeout(revealTimer)
+        clearTimeout(modalTimer)
+      }
+    } else if (!hasShowdown && hadShowdown) {
+      // Showdown ended - but keep phase until modal dismissed
+      prevShowdownRef.current = false
+      if (!handResult) {
+        setShowdownPhase(null)
+      }
+    }
+  }, [gameState?.showdown, handResult])
+
+  // Clear phase when handResult is dismissed
+  useEffect(() => {
+    if (!handResult && !gameState?.showdown) {
+      setShowdownPhase(null)
+    }
+  }, [handResult, gameState?.showdown])
+
+  // Track board cards for flip animation
+  const prevBoardLengthRef = useRef(0)
+  const [revealedIndices, setRevealedIndices] = useState(new Set())
+
+  // Calculate which cards are new (need flip animation)
+  const currentBoardLength = gameState?.board?.length || 0
+  const newCardIndices = useMemo(() => {
+    const indices = []
+    for (let i = 0; i < currentBoardLength; i++) {
+      if (!revealedIndices.has(i)) {
+        indices.push(i)
+      }
+    }
+    return indices
+  }, [currentBoardLength, revealedIndices])
+
+  // After animation completes, mark cards as revealed
+  useEffect(() => {
+    if (newCardIndices.length > 0) {
+      const timer = setTimeout(() => {
+        setRevealedIndices(prev => {
+          const next = new Set(prev)
+          newCardIndices.forEach(i => next.add(i))
+          return next
+        })
+      }, 1500) // After flip animation completes
+      return () => clearTimeout(timer)
+    }
+  }, [newCardIndices])
+
+  // Reset revealed indices when board resets
+  useEffect(() => {
+    if (currentBoardLength < prevBoardLengthRef.current) {
+      setRevealedIndices(new Set())
+    }
+    prevBoardLengthRef.current = currentBoardLength
+  }, [currentBoardLength])
+
+  // Base delay for showdown card reveal - always reveal if showdown exists
+  const getRevealDelay = useCallback(() => {
+    if (!gameState?.showdown) return 0
+    return 200  // Small initial delay
+  }, [gameState?.showdown])
+
+  // Show highlights during revealing phase
+  const shouldHighlight = showdownPhase === 'revealing' || showdownPhase === 'showModal'
+
   return (
     <div className="poker-table-container">
       <div className="poker-table">
@@ -64,7 +153,13 @@ function PokerTable() {
 
           <div className="community-cards">
             {(gameState?.showdown?.board || gameState?.board)?.map((card, idx) => (
-              <Card key={idx} card={card} highlighted={isWinningCard(card)} />
+              <Card
+                key={idx}
+                card={card}
+                highlighted={shouldHighlight && isWinningCard(card)}
+                revealing={newCardIndices.includes(idx)}
+                revealDelay={newCardIndices.indexOf(idx) * 400}
+              />
             )) || []}
             {(!gameState?.board || gameState.board.length === 0) && !gameState?.showdown?.board && (
               <div className="no-cards">No community cards</div>
@@ -95,9 +190,10 @@ function PokerTable() {
                 playerBet={gameState?.player_bets?.[player.pid] || 0}
                 small
                 showdownCards={getShowdownData(player.pid)}
-                isWinner={isWinner(player.pid)}
+                isWinner={shouldHighlight && isWinner(player.pid)}
                 isSB={player.pid === gameState?.sb_pid}
                 isBB={player.pid === gameState?.bb_pid}
+                revealDelay={getRevealDelay()}
               />
             </div>
           ))}
@@ -114,13 +210,14 @@ function PokerTable() {
             playerBet={myBet}
             isMe
             showdownCards={getShowdownData(myPid)}
-            isWinner={isWinner(myPid)}
+            isWinner={shouldHighlight && isWinner(myPid)}
             isSB={myPid === gameState?.sb_pid}
             isBB={myPid === gameState?.bb_pid}
+            revealDelay={getRevealDelay()}
           />
           <div className="my-cards">
             {gameState?.hole_cards?.map((card, idx) => {
-              const amIWinner = isWinner(myPid)
+              const amIWinner = shouldHighlight && isWinner(myPid)
               const myShowdown = gameState?.showdown?.players?.[myPid]
               const highlighted = amIWinner && myShowdown?.highlight_cards?.includes(card)
               return <Card key={idx} card={card} highlighted={highlighted} />
@@ -152,8 +249,6 @@ function PokerTable() {
       {/* Game log */}
       <GameLog />
 
-      {/* Hand result modal */}
-      <HandResultModal result={handResult} onClose={clearHandResult} myPlayerName={myPlayer?.name} />
     </div>
   )
 }

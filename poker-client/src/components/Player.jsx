@@ -1,7 +1,7 @@
 import Card from './Card'
 import './Player.css'
 
-function Player({ player, isDealer, isCurrentTurn, playerBet, small, isMe, showdownCards, isWinner, isSB, isBB }) {
+function Player({ player, isDealer, isCurrentTurn, playerBet, small, isMe, showdownCards, isWinner, isSB, isBB, revealDelay = 0 }) {
   return (
     <div className={`player ${isCurrentTurn ? 'current-turn' : ''} ${isMe ? 'is-me' : ''} ${small ? 'small' : ''} ${isWinner ? 'winner' : ''}`}>
       <div className="player-info-box">
@@ -45,6 +45,8 @@ function Player({ player, isDealer, isCurrentTurn, playerBet, small, isMe, showd
               card={card}
               small
               highlighted={isWinner && showdownCards.highlightCards?.includes(card)}
+              revealing={revealDelay > 0}
+              revealDelay={idx * 800}
             />
           ))}
           {isWinner && showdownCards.handName && (
