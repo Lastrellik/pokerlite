@@ -16,15 +16,15 @@
 
 .player.current-turn {
   border: 3px solid #00f5ff;
-  animation: pulse 1.5s infinite;
+  animation: turnPulse 1.2s infinite;
 }
 
-@keyframes pulse {
+@keyframes turnPulse {
   0%, 100% {
-    box-shadow: 0 0 20px rgba(0, 245, 255, 0.4);
+    box-shadow: 0 0 15px rgba(0, 245, 255, 0.4), 0 0 30px rgba(0, 245, 255, 0.2);
   }
   50% {
-    box-shadow: 0 0 40px rgba(0, 245, 255, 0.8);
+    box-shadow: 0 0 25px rgba(0, 245, 255, 0.7), 0 0 50px rgba(0, 245, 255, 0.4);
   }
 }
 

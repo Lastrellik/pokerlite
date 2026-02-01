@@ -1,12 +1,74 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 import json
 import secrets
+import asyncio
 
 from ..core.tables import get_table
 from ..core.protocol import broadcast_state
 from ..core.game import handle_message, handle_disconnect
+from ..core.game_flow import check_turn_timeout
+from ..core.player_utils import active_pids
+from ..core.betting import is_betting_complete
+from ..core.game_flow import advance_turn, advance_street, run_showdown
 
 router = APIRouter()
+
+# Track active timeout checkers per table
+_timeout_tasks: dict[str, asyncio.Task] = {}
+
+
+async def _timeout_checker(table_id: str):
+    """Background task that checks for turn timeouts."""
+    table = get_table(table_id)
+
+    while True:
+        await asyncio.sleep(1)  # Check every second
+
+        # Stop if no connections
+        if not table.connections:
+            break
+
+        async with table.lock:
+            if not table.hand_in_progress:
+                continue
+
+            timed_out, auto_action = check_turn_timeout(table)
+            if not timed_out:
+                continue
+
+            # Process the timeout
+            current_pid = table.current_turn_pid
+            player_name = table.players[current_pid].name if current_pid else "Player"
+
+            # Set last_action for UI animation
+            table.last_action = {"pid": current_pid, "action": "fold" if auto_action == "fold" else "check", "amount": 0}
+
+            # Continue game flow after timeout
+            active = active_pids(table)
+            if len(active) == 1:
+                info_msg = run_showdown(table)
+            elif is_betting_complete(table, active):
+                can_continue = advance_street(table)
+                if not can_continue:
+                    info_msg = run_showdown(table)
+                else:
+                    info_msg = f"{player_name} timed out - auto {auto_action}"
+            else:
+                advance_turn(table)
+                info_msg = f"{player_name} timed out - auto {auto_action}"
+
+        # Broadcast info message
+        if info_msg:
+            for conn_pid, conn_ws in list(table.connections.items()):
+                try:
+                    await conn_ws.send_text(json.dumps({"type": "info", "message": info_msg}))
+                except Exception:
+                    pass
+
+        await broadcast_state(table)
+
+    # Clean up task reference
+    _timeout_tasks.pop(table_id, None)
 
 @router.websocket("/ws/{table_id}")
 async def ws_endpoint(ws: WebSocket, table_id: str):
@@ -32,6 +94,10 @@ async def ws_endpoint(ws: WebSocket, table_id: str):
     async with table.lock:
         table.upsert_player(pid=pid, name=name)
         table.connections[pid] = ws
+
+    # Start timeout checker if not running
+    if table_id not in _timeout_tasks or _timeout_tasks[table_id].done():
+        _timeout_tasks[table_id] = asyncio.create_task(_timeout_checker(table_id))
 
     await ws.send_text(json.dumps({"type": "welcome", "pid": pid}))
     await broadcast_state(table)

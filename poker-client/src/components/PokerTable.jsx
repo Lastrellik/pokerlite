@@ -181,7 +181,7 @@ function PokerTable() {
       setJustWonPids(winnerPids)
       const clearTimer = setTimeout(() => {
         setJustWonPids(new Set())
-      }, 3000)
+      }, 2000)
       prevShowdownRef2.current = showdown
       return () => clearTimeout(clearTimer)
     }
@@ -196,7 +196,7 @@ function PokerTable() {
         }, 1500)
         const clearTimer = setTimeout(() => {
           setJustWonPids(new Set())
-        }, 4500)
+        }, 3500)
         return () => {
           clearTimeout(showTimer)
           clearTimeout(clearTimer)
