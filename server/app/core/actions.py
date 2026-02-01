@@ -34,7 +34,7 @@ async def handle_message(table: TableState, pid: str, msg: Dict[str, Any]) -> Op
 
     if mtype == "start":
         start_new_hand(table)
-        return None
+        return "New hand started"
 
     if mtype == "action":
         return await _handle_action(table, pid, msg)
@@ -84,9 +84,13 @@ async def _handle_action(table: TableState, pid: str, msg: Dict[str, Any]) -> Op
     # Record last action for UI animations
     table.last_action = {"pid": pid, "action": action, "amount": amount}
 
+    # Build action message for logging
+    action_msg = None
+
     # Handle fold
     if action == "fold":
         table.folded_pids.add(pid)
+        action_msg = f"{player.name} folds"
 
         # Check if only one player remains
         active = active_pids(table)
@@ -98,20 +102,25 @@ async def _handle_action(table: TableState, pid: str, msg: Dict[str, Any]) -> Op
         # Can only check if no bet to call
         if table.current_bet > player_current_bet:
             return None  # Invalid action
+        action_msg = f"{player.name} checks"
 
     # Handle call
     elif action == "call":
+        call_amount = min(table.current_bet - player_current_bet, player.stack)
         process_call(table, pid)
+        action_msg = f"{player.name} calls ${call_amount}"
 
     # Handle raise
     elif action == "raise":
         process_raise(table, pid, amount)
+        action_msg = f"{player.name} raises to ${amount}"
 
     # Handle all-in
     elif action == "all_in":
         # All-in is a raise with the player's entire stack
         all_in_amount = player.stack + player_current_bet
         process_raise(table, pid, all_in_amount)
+        action_msg = f"{player.name} goes all-in for ${all_in_amount}"
 
     # Check if betting round is complete
     active = active_pids(table)
@@ -133,16 +142,16 @@ async def _handle_action(table: TableState, pid: str, msg: Dict[str, Any]) -> Op
                 "winner_pids": [],  # No winner yet
                 "runout": True,  # Flag to indicate this is a runout reveal, not final showdown
             }
-            return None  # Runout task will handle the rest
+            return action_msg  # Return the action message
         # Try to advance to next street
         can_continue = advance_street(table)
         if not can_continue:
             # After river, go to showdown
             return run_showdown(table)
-        return None
+        return action_msg
 
     advance_turn(table)
-    return None
+    return action_msg
 
 
 def handle_disconnect(table: TableState, pid: str) -> Optional[str]:
