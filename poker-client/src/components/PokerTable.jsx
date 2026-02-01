@@ -8,8 +8,8 @@ import SpectatorPanel from './SpectatorPanel'
 import './PokerTable.css'
 
 // Ellipse dimensions for player positioning (table is 800x500)
-const ELLIPSE_RX = 360  // horizontal radius
-const ELLIPSE_RY = 210  // vertical radius
+const ELLIPSE_RX = 410  // horizontal radius
+const ELLIPSE_RY = 230  // vertical radius
 
 // Calculate position on ellipse by seat number (1-8)
 // Seats arranged like a clock: 1=top, 3=right, 5=bottom, 7=left
@@ -23,8 +23,8 @@ const getPositionBySeat = (seat) => {
   const angleRad = angleDeg * (Math.PI / 180)
 
   return {
-    x: Math.round(ELLIPSE_RX * Math.cos(angleRad)) - 60,
-    y: Math.round(ELLIPSE_RY * Math.sin(angleRad)) - 40,
+    x: Math.round(ELLIPSE_RX * Math.cos(angleRad)) - 75,
+    y: Math.round(ELLIPSE_RY * Math.sin(angleRad)) - 60,
   }
 }
 
@@ -317,7 +317,8 @@ function PokerTable() {
 
   return (
     <div className="poker-table-container">
-      <div className="poker-table">
+      <div className="table-area">
+        <div className="poker-table">
         {/* Center area with community cards and pot */}
         <div className="table-center">
           <div className="pot-display">
@@ -377,10 +378,12 @@ function PokerTable() {
                 justWon={justWonPids.has(player.pid)}
                 lastAction={displayedAction?.pid === player.pid ? displayedAction.action : null}
                 isMe={isMe}
+                turnDeadline={gameState?.turn_deadline}
               />
             </div>
           )})}
         </div>
+      </div>
       </div>
 
       {/* Your cards and actions at the bottom - only for seated players */}

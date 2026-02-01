@@ -1,7 +1,28 @@
+import { useState, useEffect } from 'react'
 import Card from './Card'
 import './Player.css'
 
-function Player({ player, isDealer, isCurrentTurn, playerBet, small, isMe, showdownCards, isWinner, isSB, isBB, revealDelay = 0, folded, justFolded, justWon, lastAction }) {
+function Player({ player, isDealer, isCurrentTurn, playerBet, small, isMe, showdownCards, isWinner, isSB, isBB, revealDelay = 0, folded, justFolded, justWon, lastAction, turnDeadline }) {
+  // Countdown timer for current turn
+  const [timeLeft, setTimeLeft] = useState(null)
+
+  useEffect(() => {
+    if (!isCurrentTurn || !turnDeadline) {
+      setTimeLeft(null)
+      return
+    }
+
+    const updateTimer = () => {
+      const now = Date.now() / 1000
+      const remaining = Math.max(0, Math.ceil(turnDeadline - now))
+      setTimeLeft(remaining)
+    }
+
+    updateTimer()
+    const interval = setInterval(updateTimer, 1000)
+
+    return () => clearInterval(interval)
+  }, [isCurrentTurn, turnDeadline])
   return (
     <div className={`player ${isCurrentTurn ? 'current-turn' : ''} ${isMe ? 'is-me' : ''} ${small ? 'small' : ''} ${isWinner ? 'winner' : ''} ${folded ? 'folded' : ''}`}>
       {justFolded && (
@@ -66,6 +87,18 @@ function Player({ player, isDealer, isCurrentTurn, playerBet, small, isMe, showd
           <div className="player-status">Disconnected</div>
         )}
       </div>
+
+      {isCurrentTurn && timeLeft !== null && (
+        <div className="turn-timer-bar">
+          <div
+            className="turn-timer-fill"
+            style={{
+              width: `${(timeLeft / 30) * 100}%`,
+              backgroundColor: timeLeft > 15 ? '#00f5ff' : timeLeft > 5 ? '#ffaa00' : '#ff4444'
+            }}
+          />
+        </div>
+      )}
 
       {showdownCards && (
         <div className="player-showdown-cards">
