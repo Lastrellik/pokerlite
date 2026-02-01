@@ -132,6 +132,120 @@ function PokerTable() {
     prevBoardLengthRef.current = currentBoardLength
   }, [currentBoardLength])
 
+  // Track who just folded for animation
+  const [justFoldedPids, setJustFoldedPids] = useState(new Set())
+  const prevFoldedPidsRef = useRef(new Set())
+
+  useEffect(() => {
+    const currentFolded = new Set(
+      gameState?.players?.filter(p => p.folded).map(p => p.pid) || []
+    )
+    const prevFolded = prevFoldedPidsRef.current
+
+    // Find newly folded players
+    const newlyFolded = new Set()
+    currentFolded.forEach(pid => {
+      if (!prevFolded.has(pid)) {
+        newlyFolded.add(pid)
+      }
+    })
+
+    if (newlyFolded.size > 0) {
+      setJustFoldedPids(newlyFolded)
+      // Clear after animation completes
+      const timer = setTimeout(() => {
+        setJustFoldedPids(new Set())
+      }, 2000)
+      return () => clearTimeout(timer)
+    }
+
+    // Reset when hand ends
+    if (currentFolded.size === 0) {
+      setJustFoldedPids(new Set())
+    }
+
+    prevFoldedPidsRef.current = currentFolded
+  }, [gameState?.players])
+
+  // Track who just won for animation
+  const [justWonPids, setJustWonPids] = useState(new Set())
+  const prevShowdownRef2 = useRef(null)
+
+  useEffect(() => {
+    const showdown = gameState?.showdown
+    const hadShowdown = prevShowdownRef2.current
+
+    // Fold win - show immediately
+    if (showdown?.fold_win && !hadShowdown) {
+      const winnerPids = new Set(showdown.winner_pids || [])
+      setJustWonPids(winnerPids)
+      const clearTimer = setTimeout(() => {
+        setJustWonPids(new Set())
+      }, 3000)
+      prevShowdownRef2.current = showdown
+      return () => clearTimeout(clearTimer)
+    }
+
+    // Card showdown - delay until after highlights appear
+    if (showdownPhase === 'revealing' && showdown && !showdown.fold_win) {
+      const winnerPids = new Set(showdown.winner_pids || [])
+      if (winnerPids.size > 0) {
+        // Wait 1.5 seconds after highlights appear
+        const showTimer = setTimeout(() => {
+          setJustWonPids(winnerPids)
+        }, 1500)
+        const clearTimer = setTimeout(() => {
+          setJustWonPids(new Set())
+        }, 4500)
+        return () => {
+          clearTimeout(showTimer)
+          clearTimeout(clearTimer)
+        }
+      }
+    }
+
+    // Reset when showdown clears
+    if (!showdown) {
+      setJustWonPids(new Set())
+      prevShowdownRef2.current = null
+    }
+  }, [showdownPhase, gameState?.showdown])
+
+  // Track last action for animation
+  const [displayedAction, setDisplayedAction] = useState(null) // {pid, action}
+  const prevActionRef = useRef(null)
+
+  useEffect(() => {
+    const currentAction = gameState?.last_action
+    const prevAction = prevActionRef.current
+
+    // Check if this is a new action (different from previous)
+    const isNewAction = currentAction && (
+      !prevAction ||
+      currentAction.pid !== prevAction.pid ||
+      currentAction.action !== prevAction.action
+    )
+
+    if (isNewAction && currentAction.action !== 'fold') {
+      // Don't show fold here - it has its own tracking
+      setDisplayedAction({ pid: currentAction.pid, action: currentAction.action })
+      // Clear after animation
+      const timer = setTimeout(() => {
+        setDisplayedAction(null)
+      }, 1500)
+      prevActionRef.current = currentAction
+      return () => clearTimeout(timer)
+    }
+
+    // Reset when hand ends
+    if (!gameState?.hand_in_progress) {
+      setDisplayedAction(null)
+      prevActionRef.current = null
+    }
+
+    prevActionRef.current = currentAction
+  }, [gameState?.last_action, gameState?.hand_in_progress])
+
   // Base delay for showdown card reveal - always reveal if showdown exists
   const getRevealDelay = useCallback(() => {
     if (!gameState?.showdown) return 0
@@ -194,6 +308,10 @@ function PokerTable() {
                 isSB={player.pid === gameState?.sb_pid}
                 isBB={player.pid === gameState?.bb_pid}
                 revealDelay={getRevealDelay()}
+                folded={player.folded}
+                justFolded={justFoldedPids.has(player.pid)}
+                justWon={justWonPids.has(player.pid)}
+                lastAction={displayedAction?.pid === player.pid ? displayedAction.action : null}
               />
             </div>
           ))}
@@ -214,6 +332,10 @@ function PokerTable() {
             isSB={myPid === gameState?.sb_pid}
             isBB={myPid === gameState?.bb_pid}
             revealDelay={getRevealDelay()}
+            folded={gameState?.players?.find(p => p.pid === myPid)?.folded}
+            justFolded={justFoldedPids.has(myPid)}
+            justWon={justWonPids.has(myPid)}
+            lastAction={displayedAction?.pid === myPid ? displayedAction.action : null}
           />
           <div className="my-cards">
             {gameState?.hole_cards?.map((card, idx) => {

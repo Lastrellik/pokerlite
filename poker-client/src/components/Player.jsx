@@ -1,9 +1,39 @@
 import Card from './Card'
 import './Player.css'
 
-function Player({ player, isDealer, isCurrentTurn, playerBet, small, isMe, showdownCards, isWinner, isSB, isBB, revealDelay = 0 }) {
+function Player({ player, isDealer, isCurrentTurn, playerBet, small, isMe, showdownCards, isWinner, isSB, isBB, revealDelay = 0, folded, justFolded, justWon, lastAction }) {
   return (
-    <div className={`player ${isCurrentTurn ? 'current-turn' : ''} ${isMe ? 'is-me' : ''} ${small ? 'small' : ''} ${isWinner ? 'winner' : ''}`}>
+    <div className={`player ${isCurrentTurn ? 'current-turn' : ''} ${isMe ? 'is-me' : ''} ${small ? 'small' : ''} ${isWinner ? 'winner' : ''} ${folded ? 'folded' : ''}`}>
+      {justFolded && (
+        <div className="action-overlay fold-overlay">
+          <span className="action-text fold-text">FOLD</span>
+        </div>
+      )}
+      {justWon && (
+        <div className="action-overlay winner-overlay">
+          <span className="action-text winner-text">WINNER</span>
+        </div>
+      )}
+      {lastAction === 'raise' && (
+        <div className="action-overlay raise-overlay">
+          <span className="action-text raise-text">RAISE</span>
+        </div>
+      )}
+      {lastAction === 'call' && (
+        <div className="action-overlay call-overlay">
+          <span className="action-text call-text">CALL</span>
+        </div>
+      )}
+      {lastAction === 'all_in' && (
+        <div className="action-overlay allin-overlay">
+          <span className="action-text allin-text">ALL IN</span>
+        </div>
+      )}
+      {lastAction === 'check' && (
+        <div className="action-overlay check-overlay">
+          <span className="action-text check-text">CHECK</span>
+        </div>
+      )}
       <div className="player-info-box">
         <div className="player-name">
           {player.name}

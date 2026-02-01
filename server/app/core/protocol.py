@@ -41,6 +41,7 @@ def public_state(table: TableState, viewer_pid: Optional[str] = None) -> dict:
                 "stack": p.stack,
                 "seat": p.seat,
                 "connected": p.connected,
+                "folded": p.pid in table.folded_pids,
             }
             for p in sorted(table.players.values(), key=lambda x: x.seat)
             if p.connected  # Only show connected players
@@ -63,6 +64,9 @@ def public_state(table: TableState, viewer_pid: Optional[str] = None) -> dict:
 
         # showdown data (only present after showdown, before next hand)
         "showdown": table.showdown_data,
+
+        # last action for UI animations
+        "last_action": table.last_action,
     }
 
 

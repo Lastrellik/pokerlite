@@ -42,6 +42,9 @@ class TableState:
     # Showdown data (populated after showdown, cleared on new hand)
     showdown_data: Optional[dict] = None
 
+    # Last action taken (for UI animations)
+    last_action: Optional[dict] = None  # {pid, action, amount}
+
 
     def upsert_player(self, pid: str, name: str) -> Player:
         if pid not in self.players:

@@ -65,6 +65,9 @@ async def _handle_action(table: TableState, pid: str, msg: Dict[str, Any]) -> Op
     # Mark player as having acted
     table.players_acted.add(pid)
 
+    # Record last action for UI animations
+    table.last_action = {"pid": pid, "action": action, "amount": amount}
+
     # Handle fold
     if action == "fold":
         table.folded_pids.add(pid)

@@ -59,8 +59,9 @@ def start_new_hand(table: TableState) -> None:
     if len(players) < 2:
         return
 
-    # Clear previous showdown data
+    # Clear previous showdown data and last action
     table.showdown_data = None
+    table.last_action = None
 
     # Move dealer button
     _advance_dealer(table, players)
@@ -253,6 +254,15 @@ def run_showdown(table: TableState) -> str:
         winner = table.players[active[0]]
         pot_won = table.pot
         winner.stack += table.pot
+
+        # Set showdown data for fold win (so frontend can show winner highlight)
+        table.showdown_data = {
+            "winner_pids": [winner.pid],
+            "pot_won": pot_won,
+            "fold_win": True,
+            "players": {},  # No cards shown for fold win
+        }
+
         _end_hand(table)
         return f"{winner.name} wins {pot_won} chips (others folded)"
 
