@@ -97,18 +97,17 @@ async def _handle_action(table: TableState, pid: str, msg: Dict[str, Any]) -> Op
         all_in_amount = player.stack + player_current_bet
         process_raise(table, pid, all_in_amount)
 
-    # Check if all active players are all-in (no chips left to bet)
-    active = active_pids(table)
-    all_players_all_in = all(table.players[apid].stack == 0 for apid in active)
-
-    if all_players_all_in:
-        # Run out all remaining streets and go to showdown
-        while table.street != "river":
-            advance_street(table)
-        return run_showdown(table)
-
     # Check if betting round is complete
+    active = active_pids(table)
     if is_betting_complete(table, active):
+        # Check if we need to run out the board (at most one player can still bet)
+        players_with_chips = [apid for apid in active if table.players[apid].stack > 0]
+
+        if len(players_with_chips) <= 1 and len(active) > 1:
+            # At most one player has chips - no more betting possible, run out the board
+            table.runout_in_progress = True
+            table.current_turn_pid = None  # No one to act
+            return None  # Runout task will handle the rest
         # Try to advance to next street
         can_continue = advance_street(table)
         if not can_continue:

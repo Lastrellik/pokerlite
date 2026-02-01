@@ -18,7 +18,7 @@ _timeout_tasks: dict[str, asyncio.Task] = {}
 
 
 async def _timeout_checker(table_id: str):
-    """Background task that checks for turn timeouts."""
+    """Background task that checks for turn timeouts and handles runouts."""
     table = get_table(table_id)
 
     while True:
@@ -28,8 +28,29 @@ async def _timeout_checker(table_id: str):
         if not table.connections:
             break
 
+        info_msg = None
+
         async with table.lock:
             if not table.hand_in_progress:
+                continue
+
+            # Handle runout mode (all players all-in)
+            if table.runout_in_progress:
+                if table.street == "river":
+                    # Runout complete, go to showdown
+                    table.runout_in_progress = False
+                    info_msg = run_showdown(table)
+                else:
+                    # Deal next street
+                    advance_street(table)
+                    # Wait longer for animations (will broadcast and sleep)
+
+                # Broadcast state for this street
+                await broadcast_state(table)
+
+                if table.runout_in_progress:
+                    # Wait 2 seconds before next street for animation
+                    await asyncio.sleep(2)
                 continue
 
             timed_out, auto_action = check_turn_timeout(table)

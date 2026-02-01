@@ -45,6 +45,9 @@ class TableState:
     # Last action taken (for UI animations)
     last_action: Optional[dict] = None  # {pid, action, amount}
 
+    # Runout mode (all players all-in, dealing remaining streets with delays)
+    runout_in_progress: bool = False
+
 
     def upsert_player(self, pid: str, name: str) -> Player:
         if pid not in self.players:

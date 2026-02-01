@@ -62,6 +62,7 @@ def start_new_hand(table: TableState) -> None:
     # Clear previous showdown data and last action
     table.showdown_data = None
     table.last_action = None
+    table.runout_in_progress = False
 
     # Move dealer button
     _advance_dealer(table, players)
