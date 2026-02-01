@@ -18,13 +18,18 @@ def post_blinds(table: TableState) -> None:
     except ValueError:
         dealer_idx = 0
 
-    # Small blind = dealer + 1
-    sb_idx = (dealer_idx + 1) % len(seats)
+    # In heads-up: dealer is SB, other player is BB
+    # In 3+ players: SB is dealer+1, BB is dealer+2
+    if len(players) == 2:
+        sb_idx = dealer_idx
+        bb_idx = (dealer_idx + 1) % len(seats)
+    else:
+        sb_idx = (dealer_idx + 1) % len(seats)
+        bb_idx = (dealer_idx + 2) % len(seats)
+
     sb_seat = seats[sb_idx]
     sb_player = [p for p in players if p.seat == sb_seat][0]
 
-    # Big blind = dealer + 2
-    bb_idx = (dealer_idx + 2) % len(seats)
     bb_seat = seats[bb_idx]
     bb_player = [p for p in players if p.seat == bb_seat][0]
 

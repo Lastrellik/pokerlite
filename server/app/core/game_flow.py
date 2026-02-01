@@ -6,10 +6,10 @@ from .models import TableState
 from .player_utils import connected_players, active_pids, eligible_players
 from .card_utils import shuffle_deck
 from .betting import post_blinds
-from .poker_logic import evaluate_hand, compare_hands, hand_name
+from .poker_logic import evaluate_hand, evaluate_hand_with_cards, compare_hands, hand_name, get_key_cards
 
-# Turn timer constant (20 seconds)
-TURN_TIMEOUT_SECONDS = 20
+# Turn timer constant (30 seconds)
+TURN_TIMEOUT_SECONDS = 30
 
 
 def _set_turn_deadline(table: TableState) -> None:
@@ -58,6 +58,9 @@ def start_new_hand(table: TableState) -> None:
 
     if len(players) < 2:
         return
+
+    # Clear previous showdown data
+    table.showdown_data = None
 
     # Move dealer button
     _advance_dealer(table, players)
@@ -114,9 +117,10 @@ def _set_first_to_act(table: TableState, players: list) -> None:
     seats = sorted([p.seat for p in players])
     try:
         dealer_idx = seats.index(table.dealer_seat)
-        # In heads up, SB acts first preflop; otherwise UTG (dealer+3) acts first
+        # In heads up, dealer/SB acts first preflop; otherwise UTG (dealer+3) acts first
         if len(players) == 2:
-            first_idx = (dealer_idx + 1) % len(seats)
+            # Dealer is SB in heads-up, SB acts first preflop
+            first_idx = dealer_idx
         else:
             first_idx = (dealer_idx + 3) % len(seats)
         first_seat = seats[first_idx]
@@ -159,12 +163,39 @@ def advance_street(table: TableState) -> bool:
     # Deal community cards
     _deal_community_cards(table, next_street)
 
-    # Reset turn to first active player
-    pids = active_pids(table)
-    table.current_turn_pid = pids[0] if pids else None
+    # Reset turn to first active player after dealer (post-flop order)
+    table.current_turn_pid = _get_first_postflop_actor(table)
     _set_turn_deadline(table)
 
     return True
+
+
+def _get_first_postflop_actor(table: TableState) -> str | None:
+    """Get the first player to act post-flop (first active player after dealer)."""
+    from .player_utils import active_players
+
+    active = active_players(table)
+    if not active:
+        return None
+
+    if len(active) == 1:
+        return active[0].pid
+
+    # Sort by seat
+    seats = sorted([p.seat for p in active])
+
+    # Find first seat after dealer
+    dealer_seat = table.dealer_seat
+
+    # Find the first seat that comes after the dealer in clockwise order
+    for seat in seats:
+        if seat > dealer_seat:
+            player = next(p for p in active if p.seat == seat)
+            return player.pid
+
+    # Wrap around - dealer is at or after all active seats
+    player = next(p for p in active if p.seat == seats[0])
+    return player.pid
 
 
 def _deal_community_cards(table: TableState, street: str) -> None:
@@ -225,18 +256,18 @@ def run_showdown(table: TableState) -> str:
         _end_hand(table)
         return f"{winner.name} wins {pot_won} chips (others folded)"
 
-    # Evaluate all hands
+    # Evaluate all hands with best 5 cards
     hand_evals = {}
     for pid in active:
         cards = table.hole_cards.get(pid, []) + table.board
-        hand_evals[pid] = evaluate_hand(cards)
+        hand_evals[pid] = evaluate_hand_with_cards(cards)
 
     # Find winner(s)
     best_hand = None
     winners = []
 
     for pid in active:
-        hand = hand_evals[pid]
+        hand = hand_evals[pid][:2]  # Just rank and tiebreakers for comparison
         if best_hand is None:
             best_hand = hand
             winners = [pid]
@@ -259,10 +290,30 @@ def run_showdown(table: TableState) -> str:
             award += remainder
         table.players[pid].stack += award
 
+    # Build showdown data before ending hand
+    hand_description = hand_name(best_hand)
+    showdown_players = {}
+    for pid in active:
+        rank, tiebreakers, best_5 = hand_evals[pid]
+        key_cards = get_key_cards(best_5, rank)
+        showdown_players[pid] = {
+            "hole_cards": table.hole_cards.get(pid, []),
+            "best_5_cards": best_5,
+            "highlight_cards": key_cards,
+            "hand_name": hand_name((rank, tiebreakers)),
+        }
+
+    table.showdown_data = {
+        "players": showdown_players,
+        "winner_pids": winners,
+        "winning_hand_name": hand_description,
+        "pot_won": total_pot,
+        "board": table.board.copy(),
+    }
+
     _end_hand(table)
 
     # Generate result message
-    hand_description = hand_name(best_hand)
     if len(winners) == 1:
         winner = table.players[winners[0]]
         return f"{winner.name} wins {total_pot} chips with {hand_description}"

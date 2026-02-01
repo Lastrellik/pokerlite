@@ -51,6 +51,12 @@
   font-size: 14px;
 }
 
+.player-badges {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
 .dealer-button {
   background: linear-gradient(135deg, #ff006e 0%, #ff4d00 100%);
   color: white;
@@ -63,6 +69,70 @@
   font-size: 12px;
   font-weight: bold;
   box-shadow: 0 0 10px rgba(255, 0, 110, 0.5);
+}
+
+.blind-chip {
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: bold;
+  color: white;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.blind-chip.sb {
+  background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+  box-shadow: 0 0 8px rgba(52, 152, 219, 0.5);
+}
+
+.blind-chip.bb {
+  background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+  box-shadow: 0 0 8px rgba(243, 156, 18, 0.5);
+}
+
+.badge-wrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+.badge-tooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.95);
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: normal;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s, visibility 0.2s;
+  z-index: 1000;
+  margin-bottom: 8px;
+  border: 1px solid rgba(0, 245, 255, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.badge-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: rgba(0, 0, 0, 0.95);
+}
+
+.badge-wrapper:hover .badge-tooltip {
+  opacity: 1;
+  visibility: visible;
 }
 
 .player-stack {
@@ -92,4 +162,38 @@
   color: #ff006e;
   font-size: 12px;
   font-style: italic;
+}
+
+.player.winner {
+  border: 3px solid #ffbd00;
+  box-shadow: 0 0 25px rgba(255, 189, 0, 0.5);
+  animation: winner-pulse 1.5s infinite;
+}
+
+@keyframes winner-pulse {
+  0%, 100% {
+    box-shadow: 0 0 25px rgba(255, 189, 0, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(255, 189, 0, 0.8);
+  }
+}
+
+.player-showdown-cards {
+  display: flex;
+  gap: 4px;
+  margin-top: 8px;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.hand-name {
+  color: #ffbd00;
+  font-size: 11px;
+  font-weight: bold;
+  text-transform: uppercase;
+  margin-top: 4px;
+  width: 100%;
+  text-align: center;
 }

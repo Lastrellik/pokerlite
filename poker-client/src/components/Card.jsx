@@ -22,7 +22,7 @@ const RANK_DISPLAY = {
   'A': 'A'
 }
 
-function Card({ card, faceDown = false, small = false }) {
+function Card({ card, faceDown = false, small = false, highlighted = false }) {
   if (!card) {
     return <div className={`card empty ${small ? 'small' : ''}`}></div>
   }
@@ -42,7 +42,7 @@ function Card({ card, faceDown = false, small = false }) {
   const displayRank = RANK_DISPLAY[rank] || rank
 
   return (
-    <div className={`card ${color} ${small ? 'small' : ''}`}>
+    <div className={`card ${color} ${small ? 'small' : ''} ${highlighted ? 'highlighted' : ''}`}>
       <div className="card-corner top-left">
         <div className="rank">{displayRank}</div>
         <div className="suit">{suitSymbol}</div>

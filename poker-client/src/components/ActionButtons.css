@@ -6,16 +6,17 @@
   border-radius: 12px;
   justify-content: center;
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   position: relative;
   z-index: 100;
-  margin-top: 20px;
+  margin-top: 8px;
   border: 2px solid rgba(0, 245, 255, 0.3);
   box-shadow: 0 0 30px rgba(0, 245, 255, 0.2);
+  min-width: max-content;
 }
 
 .action-buttons.with-cards {
-  margin-top: 200px;
+  margin-top: 0;
 }
 
 .btn-action {

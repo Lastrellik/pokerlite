@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useCallback } from 'react'
 import { usePokerGame } from '../hooks/usePokerGame.jsx'
 import Card from './Card'
 import Player from './Player'
@@ -29,6 +29,29 @@ function PokerTable() {
     return gameState.players.filter(p => p.connected && p.stack > 0).length
   }, [gameState?.players])
 
+  // Helper to get showdown data for a player
+  const getShowdownData = useCallback((pid) => {
+    if (!gameState?.showdown?.players?.[pid]) return null
+    const playerData = gameState.showdown.players[pid]
+    return {
+      holeCards: playerData.hole_cards,
+      highlightCards: playerData.highlight_cards,
+      handName: playerData.hand_name,
+    }
+  }, [gameState?.showdown])
+
+  const isWinner = useCallback((pid) => {
+    return gameState?.showdown?.winner_pids?.includes(pid) || false
+  }, [gameState?.showdown])
+
+  // Check if a community card is part of any winner's key cards
+  const isWinningCard = useCallback((card) => {
+    if (!gameState?.showdown?.winner_pids) return false
+    return gameState.showdown.winner_pids.some(winnerPid =>
+      gameState.showdown.players[winnerPid]?.highlight_cards?.includes(card)
+    )
+  }, [gameState?.showdown])
+
   return (
     <div className="poker-table-container">
       <div className="poker-table">
@@ -40,10 +63,10 @@ function PokerTable() {
           </div>
 
           <div className="community-cards">
-            {gameState?.board?.map((card, idx) => (
-              <Card key={idx} card={card} />
+            {(gameState?.showdown?.board || gameState?.board)?.map((card, idx) => (
+              <Card key={idx} card={card} highlighted={isWinningCard(card)} />
             )) || []}
-            {(!gameState?.board || gameState.board.length === 0) && (
+            {(!gameState?.board || gameState.board.length === 0) && !gameState?.showdown?.board && (
               <div className="no-cards">No community cards</div>
             )}
           </div>
@@ -71,49 +94,60 @@ function PokerTable() {
                 isCurrentTurn={player.pid === gameState?.current_turn_pid}
                 playerBet={gameState?.player_bets?.[player.pid] || 0}
                 small
+                showdownCards={getShowdownData(player.pid)}
+                isWinner={isWinner(player.pid)}
+                isSB={player.pid === gameState?.sb_pid}
+                isBB={player.pid === gameState?.bb_pid}
               />
             </div>
           ))}
         </div>
-
-        {/* Your hand at the bottom */}
-        {myPlayer && (
-          <div className="my-hand">
-            <Player
-              player={myPlayer}
-              isDealer={myPlayer.seat === gameState?.dealer_seat}
-              isCurrentTurn={myPlayer.pid === gameState?.current_turn_pid}
-              playerBet={myBet}
-              isMe
-            />
-            <div className="my-cards">
-              {gameState?.hole_cards?.map((card, idx) => (
-                <Card key={idx} card={card} />
-              )) || [<Card key="1" faceDown />, <Card key="2" faceDown />]}
-            </div>
-            <div className="my-info">
-              <div className="info-item">
-                <span className="label">Stack:</span>
-                <span className="value">${myPlayer.stack}</span>
-              </div>
-              <div className="info-item">
-                <span className="label">To Call:</span>
-                <span className="value">${toCall}</span>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* Action buttons */}
-      <ActionButtons
-        isMyTurn={gameState?.current_turn_pid === myPid}
-        toCall={toCall}
-        currentBet={gameState?.current_bet || 0}
-        handInProgress={gameState?.hand_in_progress || false}
-        playerCount={eligiblePlayerCount}
-        turnDeadline={gameState?.turn_deadline}
-      />
+      {/* Your hand at the bottom */}
+      {myPlayer && (
+        <div className="my-hand">
+          <Player
+            player={myPlayer}
+            isDealer={myPlayer.seat === gameState?.dealer_seat}
+            isCurrentTurn={myPlayer.pid === gameState?.current_turn_pid}
+            playerBet={myBet}
+            isMe
+            showdownCards={getShowdownData(myPid)}
+            isWinner={isWinner(myPid)}
+            isSB={myPid === gameState?.sb_pid}
+            isBB={myPid === gameState?.bb_pid}
+          />
+          <div className="my-cards">
+            {gameState?.hole_cards?.map((card, idx) => {
+              const amIWinner = isWinner(myPid)
+              const myShowdown = gameState?.showdown?.players?.[myPid]
+              const highlighted = amIWinner && myShowdown?.highlight_cards?.includes(card)
+              return <Card key={idx} card={card} highlighted={highlighted} />
+            }) || [<Card key="1" faceDown />, <Card key="2" faceDown />]}
+          </div>
+          <div className="my-info">
+            <div className="info-item">
+              <span className="label">Stack:</span>
+              <span className="value">${myPlayer.stack}</span>
+            </div>
+            <div className="info-item">
+              <span className="label">To Call:</span>
+              <span className="value">${toCall}</span>
+            </div>
+          </div>
+
+          {/* Action buttons */}
+          <ActionButtons
+            isMyTurn={gameState?.current_turn_pid === myPid}
+            toCall={toCall}
+            currentBet={gameState?.current_bet || 0}
+            handInProgress={gameState?.hand_in_progress || false}
+            playerCount={eligiblePlayerCount}
+            turnDeadline={gameState?.turn_deadline}
+          />
+        </div>
+      )}
 
       {/* Game log */}
       <GameLog />

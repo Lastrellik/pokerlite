@@ -39,6 +39,9 @@ class TableState:
     small_blind: int = 5
     big_blind: int = 10
 
+    # Showdown data (populated after showdown, cleared on new hand)
+    showdown_data: Optional[dict] = None
+
 
     def upsert_player(self, pid: str, name: str) -> Player:
         if pid not in self.players:
