@@ -52,35 +52,67 @@ function PokerTable() {
   }, [gameState?.showdown])
 
   // Track showdown phases: 'flipping' -> 'revealing' -> 'showModal'
-  const [showdownPhase, setShowdownPhase] = useState(null) // null | 'flipping' | 'revealing' | 'showModal'
+  const [showdownPhase, setShowdownPhase] = useState(null) // null | 'flipping' | 'revealing' | 'runout' | 'showModal'
   const prevShowdownRef = useRef(null)
+  const wasRunoutRef = useRef(false)
 
   useEffect(() => {
     const hasShowdown = !!gameState?.showdown
     const hadShowdown = prevShowdownRef.current
+    const isRunout = gameState?.showdown?.runout
 
     if (hasShowdown && !hadShowdown) {
       // New showdown started
       prevShowdownRef.current = true
-      setShowdownPhase('flipping')
 
-      // After 3 seconds, highlight the winning cards
-      const revealTimer = setTimeout(() => {
-        setShowdownPhase('revealing')
-      }, 3000)
+      if (isRunout) {
+        // Runout - show cards immediately, no winner phase yet
+        wasRunoutRef.current = true
+        setShowdownPhase('runout')
+      } else {
+        // Normal showdown with winners
+        if (wasRunoutRef.current) {
+          // Transitioning from runout to final showdown - go straight to revealing
+          wasRunoutRef.current = false
+          setShowdownPhase('revealing')
 
-      // After 6 seconds (3s more), show the modal
+          const modalTimer = setTimeout(() => {
+            setShowdownPhase('showModal')
+          }, 3000)
+
+          return () => clearTimeout(modalTimer)
+        } else {
+          // Fresh showdown - do the flip animation
+          setShowdownPhase('flipping')
+
+          const revealTimer = setTimeout(() => {
+            setShowdownPhase('revealing')
+          }, 3000)
+
+          const modalTimer = setTimeout(() => {
+            setShowdownPhase('showModal')
+          }, 6000)
+
+          return () => {
+            clearTimeout(revealTimer)
+            clearTimeout(modalTimer)
+          }
+        }
+      }
+    } else if (hasShowdown && hadShowdown && !isRunout && wasRunoutRef.current) {
+      // Runout just finished, now we have the real showdown with winners
+      wasRunoutRef.current = false
+      setShowdownPhase('revealing')
+
       const modalTimer = setTimeout(() => {
         setShowdownPhase('showModal')
-      }, 6000)
+      }, 3000)
 
-      return () => {
-        clearTimeout(revealTimer)
-        clearTimeout(modalTimer)
-      }
+      return () => clearTimeout(modalTimer)
     } else if (!hasShowdown && hadShowdown) {
-      // Showdown ended - but keep phase until modal dismissed
+      // Showdown ended
       prevShowdownRef.current = false
+      wasRunoutRef.current = false
       if (!handResult) {
         setShowdownPhase(null)
       }

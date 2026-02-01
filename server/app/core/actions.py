@@ -107,6 +107,16 @@ async def _handle_action(table: TableState, pid: str, msg: Dict[str, Any]) -> Op
             # At most one player has chips - no more betting possible, run out the board
             table.runout_in_progress = True
             table.current_turn_pid = None  # No one to act
+
+            # Reveal all hole cards for the runout (standard poker rules)
+            table.showdown_data = {
+                "players": {
+                    pid: {"hole_cards": table.hole_cards.get(pid, [])}
+                    for pid in active
+                },
+                "winner_pids": [],  # No winner yet
+                "runout": True,  # Flag to indicate this is a runout reveal, not final showdown
+            }
             return None  # Runout task will handle the rest
         # Try to advance to next street
         can_continue = advance_street(table)

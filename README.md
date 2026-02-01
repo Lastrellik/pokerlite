@@ -163,15 +163,17 @@ pokerlite/
 ### Running Tests
 
 ```bash
-# Backend tests
-cd server
-python test_game.py
-python test_8_players.py
-python stress_test.py
+# Run all tests (backend + frontend)
+make test
 
-# Frontend tests
-cd poker-client
-npm run lint
+# Backend tests only (pytest)
+make test-backend
+
+# Frontend tests only (vitest)
+make test-frontend
+
+# Run tests with coverage reports
+make test-coverage
 ```
 
 ### Building for Production
