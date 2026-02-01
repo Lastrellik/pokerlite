@@ -8,7 +8,12 @@ A real-time multiplayer poker application built with FastAPI (Python) and React.
 
 - Real-time multiplayer Texas Hold'em poker
 - WebSocket-based communication for instant updates
-- Clean, modern React UI
+- Clean, modern React UI with elliptical table layout
+- Up to 8 players per table with automatic seat assignment
+- Spectator mode for watching games in progress
+- Waitlist system with automatic promotion when seats open
+- Turn timeout with auto-fold/check
+- All-in runout with card-by-card reveal animations
 - Lightweight and fast FastAPI backend
 - Docker support for easy deployment
 

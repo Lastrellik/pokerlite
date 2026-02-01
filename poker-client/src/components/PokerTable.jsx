@@ -7,17 +7,24 @@ import GameLog from './GameLog'
 import SpectatorPanel from './SpectatorPanel'
 import './PokerTable.css'
 
-// Ellipse dimensions for player positioning
-const ELLIPSE_A = 320  // Semi-major axis (horizontal)
-const ELLIPSE_B = 190  // Semi-minor axis (vertical)
+// Ellipse dimensions for player positioning (table is 800x500)
+const ELLIPSE_RX = 360  // horizontal radius
+const ELLIPSE_RY = 210  // vertical radius
 
-// Calculate position on ellipse
-const getEllipsePosition = (index, total) => {
-  // Start from top (-PI/2) and go clockwise
-  const angle = (2 * Math.PI * index / total) - Math.PI / 2
+// Calculate position on ellipse by seat number (1-8)
+// Seats arranged like a clock: 1=top, 3=right, 5=bottom, 7=left
+const getPositionBySeat = (seat) => {
+  // Wrap seat to 1-8 range
+  const wrappedSeat = ((seat - 1) % 8) + 1
+
+  // Each seat is 45° apart, starting from top (seat 1 = -90°)
+  // Seat 1 = -90° (top), Seat 3 = 0° (right), Seat 5 = 90° (bottom), Seat 7 = 180° (left)
+  const angleDeg = -90 + (wrappedSeat - 1) * 45
+  const angleRad = angleDeg * (Math.PI / 180)
+
   return {
-    x: ELLIPSE_A * Math.cos(angle),
-    y: ELLIPSE_B * Math.sin(angle),
+    x: Math.round(ELLIPSE_RX * Math.cos(angleRad)) - 60,
+    y: Math.round(ELLIPSE_RY * Math.sin(angleRad)) - 40,
   }
 }
 
@@ -33,6 +40,12 @@ function PokerTable() {
     if (!gameState || !myPid) return []
     return gameState.players?.filter(p => p.pid !== myPid) || []
   }, [gameState, myPid])
+
+  // All players for table positioning (including me)
+  const allPlayers = useMemo(() => {
+    if (!gameState?.players) return []
+    return gameState.players
+  }, [gameState?.players])
 
   const myBet = gameState?.player_bets?.[myPid] || 0
   const toCall = Math.max(0, (gameState?.current_bet || 0) - myBet)
@@ -334,14 +347,16 @@ function PokerTable() {
           </div>
         </div>
 
-        {/* Other players around the table */}
+        {/* All players around the table (including current player) */}
         <div className="other-players">
-          {otherPlayers.map((player, idx) => {
-            const pos = getEllipsePosition(idx, Math.max(otherPlayers.length, 1))
+          {allPlayers.map((player, idx) => {
+            const seat = player.seat || (idx + 1)
+            const pos = getPositionBySeat(seat)
+            const isMe = player.pid === myPid
             return (
             <div
               key={player.pid}
-              className={`player-seat seat-${idx}`}
+              className={`player-seat seat-${seat}${isMe ? ' is-me' : ''}`}
               style={{
                 transform: `translate(${pos.x}px, ${pos.y}px)`
               }}
@@ -361,31 +376,16 @@ function PokerTable() {
                 justFolded={justFoldedPids.has(player.pid)}
                 justWon={justWonPids.has(player.pid)}
                 lastAction={displayedAction?.pid === player.pid ? displayedAction.action : null}
+                isMe={isMe}
               />
             </div>
           )})}
         </div>
       </div>
 
-      {/* Your hand at the bottom - only for seated players */}
+      {/* Your cards and actions at the bottom - only for seated players */}
       {myPlayer && gameState?.my_role === 'seated' && (
         <div className="my-hand">
-          <Player
-            player={myPlayer}
-            isDealer={myPlayer.seat === gameState?.dealer_seat}
-            isCurrentTurn={myPlayer.pid === gameState?.current_turn_pid}
-            playerBet={myBet}
-            isMe
-            showdownCards={getShowdownData(myPid)}
-            isWinner={shouldHighlight && isWinner(myPid)}
-            isSB={myPid === gameState?.sb_pid}
-            isBB={myPid === gameState?.bb_pid}
-            revealDelay={getRevealDelay()}
-            folded={gameState?.players?.find(p => p.pid === myPid)?.folded}
-            justFolded={justFoldedPids.has(myPid)}
-            justWon={justWonPids.has(myPid)}
-            lastAction={displayedAction?.pid === myPid ? displayedAction.action : null}
-          />
           <div className="my-cards">
             {gameState?.hole_cards?.map((card, idx) => {
               const amIWinner = shouldHighlight && isWinner(myPid)

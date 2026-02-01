@@ -86,8 +86,8 @@ class TableState:
             )
             self.spectator_pids.add(pid)
         else:
-            # Seat the player
-            used_seats = {p.seat for p in self.players.values() if p.role == PlayerRole.SEATED}
+            # Seat the player - only count connected players' seats
+            used_seats = {p.seat for p in self.players.values() if p.role == PlayerRole.SEATED and p.connected}
             seat = 1
             while seat in used_seats:
                 seat += 1

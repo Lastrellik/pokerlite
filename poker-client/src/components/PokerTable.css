@@ -98,15 +98,18 @@
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 100%;
-  height: 100%;
+  transform: translate(-50%, -50%);
+  width: 0;
+  height: 0;
 }
 
 .player-seat {
   position: absolute;
-  top: 50%;
-  left: 50%;
   transform-origin: center;
+}
+
+.player-seat.is-me {
+  filter: drop-shadow(0 0 8px rgba(0, 245, 255, 0.6));
 }
 
 .my-hand {
@@ -115,6 +118,7 @@
   align-items: center;
   gap: 8px;
   width: max-content;
+  margin-top: 40px;
   margin: 0 auto;
 }
 
