@@ -10,10 +10,13 @@ A real-time multiplayer poker application built with FastAPI (Python) and React.
 - WebSocket-based communication for instant updates
 - Clean, modern React UI with elliptical table layout
 - Up to 8 players per table with automatic seat assignment
+- **Side pot handling** - Correctly manages multiple side pots with different stack sizes
+- **Detailed game log** - Shows all actions, street changes, and side pot breakdowns
 - Spectator mode for watching games in progress
 - Waitlist system with automatic promotion when seats open
 - Turn timeout with auto-fold/check
 - All-in runout with card-by-card reveal animations
+- **Clear all-in indicators** - Shows when calling is an all-in action
 - Lightweight and fast FastAPI backend
 - Docker support for easy deployment
 

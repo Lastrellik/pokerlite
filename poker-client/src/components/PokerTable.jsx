@@ -416,6 +416,7 @@ function PokerTable() {
             handInProgress={gameState?.hand_in_progress || false}
             playerCount={eligiblePlayerCount}
             turnDeadline={gameState?.turn_deadline}
+            myStack={myPlayer?.stack || 0}
           />
         </div>
       )}

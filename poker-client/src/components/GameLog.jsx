@@ -30,7 +30,7 @@ function GameLog() {
             logs.map((log, idx) => (
               <div key={idx} className="log-entry">
                 <span className="log-time">{log.time}</span>
-                <span className="log-message">{log.message}</span>
+                <span className="log-message" style={{ whiteSpace: 'pre-wrap' }}>{log.message}</span>
               </div>
             ))
           )}

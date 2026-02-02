@@ -3,7 +3,7 @@ import { usePokerGame } from '../hooks/usePokerGame.jsx'
 import TurnTimer from './TurnTimer'
 import './ActionButtons.css'
 
-function ActionButtons({ isMyTurn, toCall, currentBet, handInProgress, playerCount, turnDeadline }) {
+function ActionButtons({ isMyTurn, toCall, currentBet, handInProgress, playerCount, turnDeadline, myStack }) {
   const { sendAction, startHand } = usePokerGame()
   const [raiseAmount, setRaiseAmount] = useState(20)
 
@@ -16,6 +16,10 @@ function ActionButtons({ isMyTurn, toCall, currentBet, handInProgress, playerCou
   const canCheck = isMyTurn && toCall === 0
   const canCall = isMyTurn && toCall > 0
   const canStartHand = playerCount >= 2
+
+  // Check if calling will be an all-in
+  const callIsAllIn = myStack > 0 && toCall >= myStack
+  const actualCallAmount = callIsAllIn ? myStack : toCall
 
   return (
     <div className={`action-buttons ${handInProgress ? 'with-cards' : ''}`}>
@@ -52,9 +56,9 @@ function ActionButtons({ isMyTurn, toCall, currentBet, handInProgress, playerCou
           <button
             onClick={handleCall}
             disabled={!canCall}
-            className="btn-action btn-call"
+            className={`btn-action btn-call ${callIsAllIn ? 'all-in-call' : ''}`}
           >
-            💰 Call ${toCall}
+            💰 Call ${actualCallAmount}{callIsAllIn ? ' (All-in)' : ''}
           </button>
 
           <div className="raise-group">

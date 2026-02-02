@@ -54,6 +54,22 @@ def check_turn_timeout(table: TableState) -> tuple[bool, str]:
 
 def start_new_hand(table: TableState) -> None:
     """Initialize a new hand."""
+    from .models import PlayerRole
+    from .waitlist import promote_from_waitlist
+
+    # Convert busted players (stack=0) to spectators BEFORE starting new hand
+    # This way they remain visible during showdown of previous hand
+    for player in list(table.players.values()):
+        if player.role == PlayerRole.SEATED and player.stack == 0:
+            player.role = PlayerRole.SPECTATOR
+            player.seat = 0
+            table.spectator_pids.add(player.pid)
+
+    # Promote from waitlist if seats available
+    promoted_pid = promote_from_waitlist(table)
+    while promoted_pid:
+        promoted_pid = promote_from_waitlist(table)
+
     players = eligible_players(table)
 
     if len(players) < 2:
@@ -157,6 +173,7 @@ def advance_street(table: TableState) -> bool:
     # Advance to next street
     table.street = next_street
     table.players_acted = set()
+    table.last_action = None  # Clear last action when advancing streets
 
     # Reset betting for new street
     table.current_bet = 0
@@ -218,6 +235,8 @@ def _deal_community_cards(table: TableState, street: str) -> None:
 
 def advance_turn(table: TableState) -> None:
     """Advances turn to next active (not folded, connected) player."""
+    from .player_utils import active_players
+
     pids = active_pids(table)
 
     if not pids:
@@ -235,7 +254,28 @@ def advance_turn(table: TableState) -> None:
         table.current_turn_pid = pids[(i + 1) % len(pids)]
     except ValueError:
         # Current player not in active list (disconnected or folded)
-        table.current_turn_pid = pids[0] if pids else None
+        # Find the next active player after the current player's seat
+        current_seat = table.players[table.current_turn_pid].seat
+        active = active_players(table)
+        active_seats = sorted([p.seat for p in active])
+
+        # Find first seat after current_seat in circular order
+        next_seat = None
+        for seat in active_seats:
+            if seat > current_seat:
+                next_seat = seat
+                break
+
+        # Wrap around if needed
+        if next_seat is None and active_seats:
+            next_seat = active_seats[0]
+
+        # Find player with that seat
+        if next_seat is not None:
+            next_player = next(p for p in active if p.seat == next_seat)
+            table.current_turn_pid = next_player.pid
+        else:
+            table.current_turn_pid = pids[0] if pids else None
 
     _set_turn_deadline(table)
 
@@ -273,36 +313,100 @@ def run_showdown(table: TableState) -> str:
         cards = table.hole_cards.get(pid, []) + table.board
         hand_evals[pid] = evaluate_hand_with_cards(cards)
 
-    # Find winner(s)
-    best_hand = None
-    winners = []
+    # Create side pots based on player bets
+    # Sort players by their bet amounts
+    player_bets_list = [(pid, table.player_bets.get(pid, 0)) for pid in active]
 
-    for pid in active:
-        hand = hand_evals[pid][:2]  # Just rank and tiebreakers for comparison
-        if best_hand is None:
-            best_hand = hand
-            winners = [pid]
-        else:
-            result = compare_hands(hand, best_hand)
-            if result == -1:
-                best_hand = hand
-                winners = [pid]
-            elif result == 0:
-                winners.append(pid)
+    # Check if all bets are equal or zero (no side pots needed)
+    bet_amounts = [bet for _, bet in player_bets_list]
+    all_equal_bets = len(set(bet_amounts)) <= 1
 
-    # Award pot
+    if all_equal_bets:
+        # Simple case: everyone contributed equally, single pot for all
+        side_pots = [{
+            'amount': table.pot,
+            'eligible_players': set(active)
+        }]
+    else:
+        # Complex case: different bet amounts, need side pots
+        player_bets_list.sort(key=lambda x: x[1])
+
+        # Build side pots
+        side_pots = []
+        remaining_players = set(active)
+        prev_bet_level = 0
+
+        for i, (pid, bet_amount) in enumerate(player_bets_list):
+            if bet_amount > prev_bet_level and remaining_players:
+                # Create a pot for this bet level
+                pot_amount = (bet_amount - prev_bet_level) * len(remaining_players)
+                side_pots.append({
+                    'amount': pot_amount,
+                    'eligible_players': remaining_players.copy()
+                })
+                prev_bet_level = bet_amount
+
+            # Remove this player from remaining (they're all-in at this level)
+            remaining_players.discard(pid)
+
+    # Award each side pot to the best hand among eligible players
     total_pot = table.pot
-    pot_share = total_pot // len(winners)
-    remainder = total_pot % len(winners)
+    total_awarded = 0
+    pot_winners = {}  # Track total won per player
+    pot_winner_details = []  # Track which players won which pots
 
-    for i, pid in enumerate(winners):
-        award = pot_share
-        if i == 0:
-            award += remainder
-        table.players[pid].stack += award
+    for pot_idx, pot in enumerate(side_pots):
+        eligible = list(pot['eligible_players'])
+
+        # Find best hand among eligible players
+        best_hand = None
+        pot_winners_list = []
+
+        for pid in eligible:
+            hand = hand_evals[pid][:2]
+            if best_hand is None:
+                best_hand = hand
+                pot_winners_list = [pid]
+            else:
+                result = compare_hands(hand, best_hand)
+                if result == -1:
+                    best_hand = hand
+                    pot_winners_list = [pid]
+                elif result == 0:
+                    pot_winners_list.append(pid)
+
+        # Split pot among winners
+        pot_share = pot['amount'] // len(pot_winners_list)
+        remainder = pot['amount'] % len(pot_winners_list)
+
+        for i, pid in enumerate(pot_winners_list):
+            award = pot_share
+            if i == 0:
+                award += remainder
+            table.players[pid].stack += award
+            total_awarded += award
+            pot_winners[pid] = pot_winners.get(pid, 0) + award
+
+        # Record pot details for display
+        pot_winner_details.append({
+            'pot_idx': pot_idx,
+            'amount': pot['amount'],
+            'winners': pot_winners_list
+        })
+
+    # Determine overall winners (for display) and find the winning hand
+    winners = list(pot_winners.keys())
+
+    # Find the best hand among all winners for display
+    winning_hand = None
+    winning_hand_name = ""
+    for pid in winners:
+        hand = hand_evals[pid][:2]
+        if winning_hand is None or compare_hands(hand, winning_hand) <= 0:
+            winning_hand = hand
+            winning_hand_name = hand_name(hand)
 
     # Build showdown data before ending hand
-    hand_description = hand_name(best_hand)
     showdown_players = {}
     for pid in active:
         rank, tiebreakers, best_5 = hand_evals[pid]
@@ -314,12 +418,27 @@ def run_showdown(table: TableState) -> str:
             "hand_name": hand_name((rank, tiebreakers)),
         }
 
+    # Build side pot breakdown for display
+    side_pot_breakdown = []
+    if len(side_pots) > 1:
+        # Multiple pots - show breakdown
+        for pot_detail in pot_winner_details:
+            idx = pot_detail['pot_idx']
+            pot_type = "Main Pot" if idx == 0 else f"Side Pot {idx}"
+            pot_winner_names = [table.players[pid].name for pid in pot_detail['winners']]
+            side_pot_breakdown.append({
+                "type": pot_type,
+                "amount": pot_detail['amount'],
+                "winners": pot_winner_names
+            })
+
     table.showdown_data = {
         "players": showdown_players,
         "winner_pids": winners,
-        "winning_hand_name": hand_description,
+        "winning_hand_name": winning_hand_name,
         "pot_won": total_pot,
         "board": table.board.copy(),
+        "side_pots": side_pot_breakdown if side_pot_breakdown else None,
     }
 
     _end_hand(table)
@@ -327,30 +446,51 @@ def run_showdown(table: TableState) -> str:
     # Generate result message
     if len(winners) == 1:
         winner = table.players[winners[0]]
-        return f"{winner.name} wins {total_pot} chips with {hand_description}"
+        won_amount = pot_winners[winners[0]]
+        # Calculate net gain (subtract their original bet)
+        original_bet = table.player_bets.get(winners[0], 0)
+        net_gain = won_amount - original_bet
+
+        if len(side_pots) > 1:
+            # Multiple side pots - explain the breakdown
+            result_msg = f"{winner.name} wins ${won_amount} (${net_gain} profit) with {winning_hand_name}"
+            # Add side pot details
+            for idx, pot_info in enumerate(side_pot_breakdown):
+                pot_type = pot_info['type']
+                pot_amt = pot_info['amount']
+                pot_winner_names = ', '.join(pot_info['winners'])
+                result_msg += f"\n  • {pot_type}: ${pot_amt} → {pot_winner_names}"
+            return result_msg
+        else:
+            # Single pot
+            return f"{winner.name} wins ${total_pot} (${net_gain} profit) with {winning_hand_name}"
     else:
-        winner_names = [table.players[pid].name for pid in winners]
-        return f"Split pot: {', '.join(winner_names)} tie with {hand_description} ({pot_share} chips each)"
+        # Multiple winners (split pot scenario)
+        winner_details = []
+        for pid in winners:
+            won_amt = pot_winners[pid]
+            original_bet = table.player_bets.get(pid, 0)
+            profit = won_amt - original_bet
+            winner_details.append(f"{table.players[pid].name} (${won_amt}, +${profit})")
+
+        result = f"Split pot: {', '.join(winner_details)} with {winning_hand_name}"
+        # Add side pot breakdown if applicable
+        if len(side_pots) > 1 and side_pot_breakdown:
+            for pot_info in side_pot_breakdown:
+                pot_type = pot_info['type']
+                pot_amt = pot_info['amount']
+                pot_winner_names = ', '.join(pot_info['winners'])
+                result += f"\n  • {pot_type}: ${pot_amt} → {pot_winner_names}"
+        return result
 
 
 def _end_hand(table: TableState) -> None:
     """Clean up hand state and handle player transitions."""
-    from .models import PlayerRole
-    from .waitlist import promote_from_waitlist
-
     table.hand_in_progress = False
     table.current_turn_pid = None
     table.pot = 0
     table.board = []
 
-    # Convert busted players (stack=0) to spectators
-    for player in table.players.values():
-        if player.role == PlayerRole.SEATED and player.stack == 0:
-            player.role = PlayerRole.SPECTATOR
-            player.seat = 0
-            table.spectator_pids.add(player.pid)
-
-    # Promote from waitlist if seats available
-    promoted_pid = promote_from_waitlist(table)
-    while promoted_pid:
-        promoted_pid = promote_from_waitlist(table)
+    # Note: Busted players (stack=0) are NOT converted to spectators here
+    # They remain visible until the next hand starts (see start_new_hand)
+    # This allows players to see the showdown results before busted players disappear

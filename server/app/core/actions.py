@@ -107,8 +107,13 @@ async def _handle_action(table: TableState, pid: str, msg: Dict[str, Any]) -> Op
     # Handle call
     elif action == "call":
         call_amount = min(table.current_bet - player_current_bet, player.stack)
+        is_all_in = call_amount >= player.stack
         process_call(table, pid)
-        action_msg = f"{player.name} calls ${call_amount}"
+        if is_all_in:
+            total_bet = player_current_bet + call_amount
+            action_msg = f"{player.name} goes all-in for ${total_bet}"
+        else:
+            action_msg = f"{player.name} calls ${call_amount}"
 
     # Handle raise
     elif action == "raise":
@@ -148,7 +153,11 @@ async def _handle_action(table: TableState, pid: str, msg: Dict[str, Any]) -> Op
         if not can_continue:
             # After river, go to showdown
             return run_showdown(table)
-        return action_msg
+
+        # Return street change message
+        street_names = {"flop": "Flop", "turn": "Turn", "river": "River"}
+        street_name = street_names.get(table.street, table.street)
+        return f"📋 Dealing {street_name}: {' '.join(table.board)}"
 
     advance_turn(table)
     return action_msg
