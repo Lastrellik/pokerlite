@@ -195,6 +195,7 @@ function PokerTable() {
   // Track who just folded for animation
   const [justFoldedPids, setJustFoldedPids] = useState(new Set())
   const prevFoldedPidsRef = useRef(new Set())
+  const shownFoldAnimationRef = useRef(new Set()) // Track who we've already shown fold animation for this hand
 
   useEffect(() => {
     const currentFolded = new Set(
@@ -202,11 +203,12 @@ function PokerTable() {
     )
     const prevFolded = prevFoldedPidsRef.current
 
-    // Find newly folded players
+    // Find newly folded players that haven't had animation shown yet
     const newlyFolded = new Set()
     currentFolded.forEach(pid => {
-      if (!prevFolded.has(pid)) {
+      if (!prevFolded.has(pid) && !shownFoldAnimationRef.current.has(pid)) {
         newlyFolded.add(pid)
+        shownFoldAnimationRef.current.add(pid)
       }
     })
 
@@ -219,9 +221,10 @@ function PokerTable() {
       return () => clearTimeout(timer)
     }
 
-    // Reset when hand ends
+    // Reset when hand ends (no one is folded anymore)
     if (currentFolded.size === 0) {
       setJustFoldedPids(new Set())
+      shownFoldAnimationRef.current = new Set()
     }
 
     prevFoldedPidsRef.current = currentFolded

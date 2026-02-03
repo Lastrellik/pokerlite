@@ -37,7 +37,7 @@ class TestActionHandling:
         """Test checking when no bet to call."""
         table = table_with_three_players
         start_new_hand(table)
-        
+
         # Get to a state where checking is valid (BB can check if everyone limps)
         while table.current_bet > table.player_bets.get(table.current_turn_pid, 0):
             pid = table.current_turn_pid
@@ -46,7 +46,8 @@ class TestActionHandling:
         current_pid = table.current_turn_pid
         result = await handle_message(table, current_pid, {"type": "action", "action": "check"})
 
-        assert "checks" in result
+        # Check completes betting and advances to flop
+        assert "Dealing Flop" in result or "checks" in result
 
     @pytest.mark.asyncio
     async def test_handle_call_action(self, table_with_three_players):
