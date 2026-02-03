@@ -45,6 +45,7 @@ class TableState:
     # Betting state
     current_bet: int = 0  # Amount needed to call
     player_bets: dict[str, int] = field(default_factory=dict)  # Bets in current round
+    total_contributions: dict[str, int] = field(default_factory=dict)  # Total bets throughout entire hand
     small_blind: int = 5
     big_blind: int = 10
 

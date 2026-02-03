@@ -36,14 +36,27 @@ async def _timeout_checker(table_id: str):
 
             # Handle runout mode (all players all-in)
             if table.runout_in_progress:
+                print(f"[RUNOUT] Processing runout on {table.street}")
                 if table.street == "river":
                     # Runout complete, go to showdown
                     table.runout_in_progress = False
                     info_msg = run_showdown(table)
+                    print(f"[RUNOUT] Showdown complete: {info_msg}")
                 else:
                     # Deal next street
                     advance_street(table)
-                    # Wait longer for animations (will broadcast and sleep)
+                    street_names = {"flop": "Flop", "turn": "Turn", "river": "River"}
+                    street_name = street_names.get(table.street, table.street)
+                    info_msg = f"📋 Dealing {street_name}: {' '.join(table.board)}"
+                    print(f"[RUNOUT] Advanced to {table.street}: {' '.join(table.board)}")
+
+                # Broadcast info message
+                if info_msg:
+                    for conn_pid, conn_ws in list(table.connections.items()):
+                        try:
+                            await conn_ws.send_text(json.dumps({"type": "info", "message": info_msg}))
+                        except Exception:
+                            pass
 
                 # Broadcast state for this street
                 await broadcast_state(table)

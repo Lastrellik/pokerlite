@@ -51,6 +51,7 @@ def table_with_blinds_posted(table_with_two_players):
     table.players["p2"].stack = 990  # Posted BB of 10
     table.pot = 15
     table.player_bets = {"p1": 5, "p2": 10}
+    table.total_contributions = {"p1": 5, "p2": 10}
     table.current_bet = 10
     table.current_turn_pid = "p1"  # SB acts first preflop in heads-up
     table.deck = shuffle_deck()[:40]  # Partial deck for testing

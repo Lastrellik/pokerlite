@@ -38,12 +38,14 @@ def post_blinds(table: TableState) -> None:
     sb_player.stack -= sb_amount
     table.pot += sb_amount
     table.player_bets[sb_player.pid] = sb_amount
+    table.total_contributions[sb_player.pid] = sb_amount
 
     # Post big blind
     bb_amount = min(table.big_blind, bb_player.stack)
     bb_player.stack -= bb_amount
     table.pot += bb_amount
     table.player_bets[bb_player.pid] = bb_amount
+    table.total_contributions[bb_player.pid] = bb_amount
 
     # Set current bet to big blind
     table.current_bet = bb_amount
@@ -61,6 +63,7 @@ def process_call(table: TableState, pid: str) -> None:
     player.stack -= call_amount
     table.pot += call_amount
     table.player_bets[pid] = player_current_bet + call_amount
+    table.total_contributions[pid] = table.total_contributions.get(pid, 0) + call_amount
 
 
 def process_raise(table: TableState, pid: str, amount: int) -> None:
@@ -84,6 +87,7 @@ def process_raise(table: TableState, pid: str, amount: int) -> None:
     player.stack -= to_pay
     table.pot += to_pay
     table.player_bets[pid] = raise_amount
+    table.total_contributions[pid] = table.total_contributions.get(pid, 0) + to_pay
 
     # Update current bet
     table.current_bet = raise_amount

@@ -124,8 +124,14 @@ async def _handle_action(table: TableState, pid: str, msg: Dict[str, Any]) -> Op
     elif action == "all_in":
         # All-in is a raise with the player's entire stack
         all_in_amount = player.stack + player_current_bet
-        process_raise(table, pid, all_in_amount)
-        action_msg = f"{player.name} goes all-in for ${all_in_amount}"
+
+        # If all-in amount doesn't meet current bet, it's a call, not a raise
+        if all_in_amount < table.current_bet:
+            process_call(table, pid)
+            action_msg = f"{player.name} goes all-in for ${all_in_amount}"
+        else:
+            process_raise(table, pid, all_in_amount)
+            action_msg = f"{player.name} goes all-in for ${all_in_amount}"
 
     # Check if betting round is complete
     active = active_pids(table)
@@ -147,6 +153,10 @@ async def _handle_action(table: TableState, pid: str, msg: Dict[str, Any]) -> Op
                 "winner_pids": [],  # No winner yet
                 "runout": True,  # Flag to indicate this is a runout reveal, not final showdown
             }
+
+            # Log for debugging
+            print(f"[RUNOUT] Starting runout with {len(active)} players, {len(players_with_chips)} with chips")
+
             return action_msg  # Return the action message
         # Try to advance to next street
         can_continue = advance_street(table)

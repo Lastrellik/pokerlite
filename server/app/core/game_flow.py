@@ -92,6 +92,7 @@ def start_new_hand(table: TableState) -> None:
     table.street = "preflop"
     table.current_bet = 0
     table.player_bets = {}
+    table.total_contributions = {}
 
     # Create and shuffle deck
     table.deck = shuffle_deck()
@@ -313,9 +314,9 @@ def run_showdown(table: TableState) -> str:
         cards = table.hole_cards.get(pid, []) + table.board
         hand_evals[pid] = evaluate_hand_with_cards(cards)
 
-    # Create side pots based on player bets
-    # Sort players by their bet amounts
-    player_bets_list = [(pid, table.player_bets.get(pid, 0)) for pid in active]
+    # Create side pots based on total contributions throughout the hand
+    # Sort players by their total bet amounts
+    player_bets_list = [(pid, table.total_contributions.get(pid, 0)) for pid in active]
 
     # Check if all bets are equal or zero (no side pots needed)
     bet_amounts = [bet for _, bet in player_bets_list]
@@ -447,8 +448,8 @@ def run_showdown(table: TableState) -> str:
     if len(winners) == 1:
         winner = table.players[winners[0]]
         won_amount = pot_winners[winners[0]]
-        # Calculate net gain (subtract their original bet)
-        original_bet = table.player_bets.get(winners[0], 0)
+        # Calculate net gain (subtract their total contribution to the pot)
+        original_bet = table.total_contributions.get(winners[0], 0)
         net_gain = won_amount - original_bet
 
         if len(side_pots) > 1:
@@ -469,7 +470,7 @@ def run_showdown(table: TableState) -> str:
         winner_details = []
         for pid in winners:
             won_amt = pot_winners[pid]
-            original_bet = table.player_bets.get(pid, 0)
+            original_bet = table.total_contributions.get(pid, 0)
             profit = won_amt - original_bet
             winner_details.append(f"{table.players[pid].name} (${won_amt}, +${profit})")
 

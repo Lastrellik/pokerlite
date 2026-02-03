@@ -208,6 +208,7 @@ class TestIsBettingComplete:
         table = table_with_blinds_posted
         table.players_acted = {"p1", "p2"}
         table.player_bets = {"p1": 10, "p2": 10}
+        table.total_contributions = table.player_bets.copy()
 
         assert is_betting_complete(table, ["p1", "p2"]) is True
 
@@ -225,6 +226,7 @@ class TestIsBettingComplete:
         table = table_mid_hand
         table.current_bet = 0
         table.player_bets = {}
+        table.total_contributions = table.player_bets.copy()
         table.players_acted = {"p1", "p2"}
 
         assert is_betting_complete(table, ["p1", "p2"]) is True

@@ -191,6 +191,7 @@ class TestAdvanceStreet:
         table.street = "preflop"
         table.current_bet = 20
         table.player_bets = {"p1": 20, "p2": 20}
+        table.total_contributions = table.player_bets.copy()
         table.players_acted = {"p1", "p2"}
 
         advance_street(table)
@@ -311,6 +312,7 @@ class TestCheckTurnTimeout:
         table.current_turn_pid = "p1"
         table.current_bet = 10
         table.player_bets = {"p1": 5}
+        table.total_contributions = table.player_bets.copy()
 
         timed_out, action = check_turn_timeout(table)
 
@@ -385,6 +387,7 @@ class TestTurnOrderBugFix:
         table.dealer_seat = 1
         table.current_bet = 100  # p2 raised to 100
         table.player_bets = {"p2": 100}
+        table.total_contributions = table.player_bets.copy()
         table.players_acted = {"p2"}  # Only p2 has acted (after raise)
 
         # Turn is on p3 after p2's raise
@@ -471,6 +474,7 @@ class TestSidePots:
             "pA": 1000,
             "pB": 500,
         }
+        table.total_contributions = table.player_bets.copy()
 
         run_showdown(table)
 
@@ -499,6 +503,7 @@ class TestSidePots:
             "pA": 1000,
             "pB": 500,
         }
+        table.total_contributions = table.player_bets.copy()
 
         run_showdown(table)
 
@@ -530,6 +535,7 @@ class TestSidePots:
             "pB": 500,
             "pC": 300,
         }
+        table.total_contributions = table.player_bets.copy()
 
         run_showdown(table)
 
@@ -564,6 +570,7 @@ class TestSidePots:
             "pB": 300,   # Short stack with best hand
             "pC": 500,
         }
+        table.total_contributions = table.player_bets.copy()
 
         run_showdown(table)
 
@@ -700,6 +707,7 @@ class TestSidePotMessaging:
             "p2": ["Th", "Tc"],  # Pair - wins
         }
         table.player_bets = {"p1": 1000, "p2": 1000}
+        table.total_contributions = table.player_bets.copy()
 
         result = run_showdown(table)
 
@@ -727,6 +735,7 @@ class TestSidePotMessaging:
             "p3": ["9h", "9s"],  # Pair of nines
         }
         table.player_bets = {"p1": 980, "p2": 1060, "p3": 980}
+        table.total_contributions = table.player_bets.copy()
 
         result = run_showdown(table)
 
@@ -759,6 +768,7 @@ class TestSidePotMessaging:
             "p2": ["Td", "Ts"],  # Pair of tens - TIE
         }
         table.player_bets = {"p1": 1000, "p2": 1000}
+        table.total_contributions = table.player_bets.copy()
 
         result = run_showdown(table)
 
@@ -788,6 +798,7 @@ class TestSidePotMessaging:
             "p3": ["9h", "9s"],
         }
         table.player_bets = {"p1": 1000, "p2": 500, "p3": 300}
+        table.total_contributions = table.player_bets.copy()
 
         run_showdown(table)
 
@@ -828,6 +839,7 @@ class TestAllInCallHandling:
         }
         # Alice bet 1000, Bob could only match 500
         table.player_bets = {"p1": 1000, "p2": 500}
+        table.total_contributions = table.player_bets.copy()
 
         result = run_showdown(table)
 
@@ -861,6 +873,7 @@ class TestAllInCallHandling:
         }
         # Different stack sizes: 1000, 800, 500, 200
         table.player_bets = {"p1": 1000, "p2": 800, "p3": 500, "p4": 200}
+        table.total_contributions = table.player_bets.copy()
 
         run_showdown(table)
 
