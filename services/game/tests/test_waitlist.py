@@ -9,7 +9,7 @@ from app.core.waitlist import (
     promote_from_waitlist,
     get_waitlist_position,
 )
-from app.core.constants import MAX_PLAYERS, DEFAULT_STARTING_STACK
+from poker.constants import MAX_PLAYERS, DEFAULT_STARTING_STACK
 
 
 @pytest.fixture

@@ -2,7 +2,7 @@
 Waitlist management for poker tables.
 """
 from .models import TableState, Player, PlayerRole
-from .constants import MAX_PLAYERS, DEFAULT_STARTING_STACK
+from poker.constants import MAX_PLAYERS, DEFAULT_STARTING_STACK
 
 
 def join_waitlist(table: TableState, pid: str) -> bool:

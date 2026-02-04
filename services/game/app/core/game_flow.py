@@ -4,9 +4,9 @@ Game flow and street progression logic.
 import time
 from .models import TableState
 from .player_utils import connected_players, active_pids, eligible_players
-from .card_utils import shuffle_deck
+from poker.card_utils import shuffle_deck
 from .betting import post_blinds
-from .poker_logic import evaluate_hand, evaluate_hand_with_cards, compare_hands, hand_name, get_key_cards
+from poker.poker_logic import evaluate_hand, evaluate_hand_with_cards, compare_hands, hand_name, get_key_cards
 
 # Turn timer constant (30 seconds)
 TURN_TIMEOUT_SECONDS = 30

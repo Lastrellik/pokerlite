@@ -39,7 +39,7 @@ def table_with_three_players():
 @pytest.fixture
 def table_with_blinds_posted(table_with_two_players):
     """Create a table with blinds already posted (heads-up)."""
-    from app.core.card_utils import shuffle_deck
+    from poker.card_utils import shuffle_deck
 
     table = table_with_two_players
     table.hand_in_progress = True
@@ -63,7 +63,7 @@ def table_with_blinds_posted(table_with_two_players):
 @pytest.fixture
 def table_mid_hand():
     """Create a table mid-hand with some action already taken."""
-    from app.core.card_utils import shuffle_deck
+    from poker.card_utils import shuffle_deck
 
     table = TableState(table_id="test-table")
     table.players = {

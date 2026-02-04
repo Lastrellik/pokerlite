@@ -2,7 +2,7 @@
 Comprehensive tests for poker hand evaluation and comparison logic.
 """
 import pytest
-from app.core.poker_logic import (
+from poker.poker_logic import (
     evaluate_hand,
     evaluate_hand_with_cards,
     compare_hands,
@@ -10,7 +10,7 @@ from app.core.poker_logic import (
     get_key_cards,
     _check_straight
 )
-from app.core.constants import HAND_RANKS
+from poker.constants import HAND_RANKS
 
 
 class TestEvaluateHand:

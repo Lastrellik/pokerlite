@@ -4,10 +4,10 @@ Refactored for clean separation of concerns.
 """
 
 # Re-export all public functions for backward compatibility
-from .constants import *
-from .card_utils import *
+from poker.constants import *
+from poker.card_utils import *
 from .player_utils import *
-from .poker_logic import (
+from poker.poker_logic import (
     evaluate_hand as _evaluate_hand,
     compare_hands as _compare_hands,
     hand_name as _hand_name,

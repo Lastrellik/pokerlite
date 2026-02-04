@@ -1,24 +1,10 @@
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
-from enum import Enum
 import asyncio
 from fastapi import WebSocket
 
-
-class PlayerRole(str, Enum):
-    SEATED = "seated"
-    SPECTATOR = "spectator"
-    WAITLIST = "waitlist"
-
-
-@dataclass
-class Player:
-    pid: str
-    name: str
-    stack: int = 1000
-    seat: int = 0
-    connected: bool = True
-    role: PlayerRole = PlayerRole.SEATED
+# Import from shared module
+from models.player import Player, PlayerRole
 
 @dataclass
 class TableState:
@@ -64,7 +50,7 @@ class TableState:
 
 
     def upsert_player(self, pid: str, name: str, force_spectator: bool = False) -> Player:
-        from .constants import MAX_PLAYERS, DEFAULT_STARTING_STACK
+        from poker.constants import MAX_PLAYERS, DEFAULT_STARTING_STACK
 
         if pid in self.players:
             # Reconnecting player - keep their role
