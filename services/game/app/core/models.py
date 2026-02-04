@@ -35,6 +35,10 @@ class TableState:
     small_blind: int = 5
     big_blind: int = 10
 
+    # Table configuration
+    max_players: int = 8
+    turn_timeout_seconds: int = 30
+
     # Showdown data (populated after showdown, cleared on new hand)
     showdown_data: Optional[dict] = None
 
@@ -50,7 +54,7 @@ class TableState:
 
 
     def upsert_player(self, pid: str, name: str, force_spectator: bool = False) -> Player:
-        from poker.constants import MAX_PLAYERS, DEFAULT_STARTING_STACK
+        from poker.constants import DEFAULT_STARTING_STACK
 
         if pid in self.players:
             # Reconnecting player - keep their role
@@ -65,7 +69,7 @@ class TableState:
             if p.role == PlayerRole.SEATED and p.connected
         )
 
-        if force_spectator or seated_count >= MAX_PLAYERS or self.hand_in_progress:
+        if force_spectator or seated_count >= self.max_players or self.hand_in_progress:
             # Add as spectator
             player = Player(
                 pid=pid, name=name, seat=0, stack=0,

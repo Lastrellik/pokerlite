@@ -11,7 +11,6 @@ from app.core.game_flow import (
     check_turn_timeout,
     _advance_dealer,
     _get_first_postflop_actor,
-    TURN_TIMEOUT_SECONDS
 )
 from app.core.models import TableState, Player
 

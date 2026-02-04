@@ -8,14 +8,10 @@ from poker.card_utils import shuffle_deck
 from .betting import post_blinds
 from poker.poker_logic import evaluate_hand, evaluate_hand_with_cards, compare_hands, hand_name, get_key_cards
 
-# Turn timer constant (30 seconds)
-TURN_TIMEOUT_SECONDS = 30
-
-
 def _set_turn_deadline(table: TableState) -> None:
     """Set turn deadline to current time + timeout."""
     if table.current_turn_pid:
-        table.turn_deadline = time.time() + TURN_TIMEOUT_SECONDS
+        table.turn_deadline = time.time() + table.turn_timeout_seconds
     else:
         table.turn_deadline = None
 
