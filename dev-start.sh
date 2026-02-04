@@ -1,66 +1,54 @@
 #!/bin/bash
 
-# Script to start all services for local development
-# Usage: ./dev-start.sh
+# Simple script to start all services in background
 
 set -e
 
 echo "🚀 Starting PokerLite Development Environment"
 echo ""
 
-# Check if tmux is available
-if ! command -v tmux &> /dev/null; then
-    echo "⚠️  tmux not installed - starting services in background"
-    echo ""
-    
-    cd services/lobby && .venv/bin/uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 &
-    LOBBY_PID=$!
-    
-    cd ../game && .venv/bin/uvicorn app.main:app --reload --host 0.0.0.0 --port 8001 &
-    GAME_PID=$!
-    
-    cd ../../poker-client && npm run dev &
-    FRONTEND_PID=$!
-    
-    echo "✅ Services started!"
-    echo ""
-    echo "📊 Services:"
-    echo "   - Lobby:    http://localhost:8000"
-    echo "   - Game:     http://localhost:8001"
-    echo "   - Frontend: http://localhost:5173"
-    echo ""
-    echo "PIDs: Lobby=$LOBBY_PID Game=$GAME_PID Frontend=$FRONTEND_PID"
-    echo ""
-    echo "Press Ctrl+C to stop all services"
-    
-    trap "kill $LOBBY_PID $GAME_PID $FRONTEND_PID 2>/dev/null" EXIT
-    wait
-    
-    exit 0
+# Check if already running
+if lsof -i:8000 -sTCP:LISTEN -t >/dev/null 2>&1; then
+    echo "❌ Port 8000 already in use (lobby service running?)"
+    echo "   Run ./dev-stop.sh first"
+    exit 1
 fi
 
-SESSION="pokerlite"
+# Get absolute path to project root
+PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
 
-# Kill existing session if it exists
-tmux kill-session -t $SESSION 2>/dev/null || true
+# Start services in background
+echo "Starting lobby service (port 8000)..."
+(cd "$PROJECT_ROOT/services/lobby" && .venv/bin/uvicorn app.main:app --reload --host 0.0.0.0 --port 8000) > /tmp/pokerlite-lobby.log 2>&1 &
+LOBBY_PID=$!
 
-# Create new session
-tmux new-session -d -s $SESSION -n "lobby"
+echo "Starting game service (port 8001)..."
+(cd "$PROJECT_ROOT/services/game" && .venv/bin/uvicorn app.main:app --reload --host 0.0.0.0 --port 8001) > /tmp/pokerlite-game.log 2>&1 &
+GAME_PID=$!
 
-# Window 0: Lobby service
-tmux send-keys -t $SESSION:0 "cd services/lobby && source .venv/bin/activate && uvicorn app.main:app --reload --host 0.0.0.0 --port 8000" C-m
+echo "Starting frontend (port 5173)..."
+(cd "$PROJECT_ROOT/poker-client" && npm run dev) > /tmp/pokerlite-frontend.log 2>&1 &
+FRONTEND_PID=$!
 
-# Window 1: Game service
-tmux new-window -t $SESSION:1 -n "game"
-tmux send-keys -t $SESSION:1 "cd services/game && source .venv/bin/activate && uvicorn app.main:app --reload --host 0.0.0.0 --port 8001" C-m
+# Save PIDs
+echo "$LOBBY_PID" > /tmp/pokerlite-lobby.pid
+echo "$GAME_PID" > /tmp/pokerlite-game.pid
+echo "$FRONTEND_PID" > /tmp/pokerlite-frontend.pid
 
-# Window 2: Frontend
-tmux new-window -t $SESSION:2 -n "frontend"
-tmux send-keys -t $SESSION:2 "cd poker-client && npm run dev" C-m
+sleep 2
 
-# Window 3: Shell
-tmux new-window -t $SESSION:3 -n "shell"
-
-echo "✅ Services starting in tmux session '$SESSION'"
 echo ""
-tmux attach-session -t $SESSION
+echo "✅ All services started!"
+echo ""
+echo "📊 Services:"
+echo "   - Frontend: http://localhost:5173"
+echo "   - Lobby:    http://localhost:8000/api/health"
+echo "   - Game:     ws://localhost:8001"
+echo ""
+echo "📝 Watch logs:"
+echo "   tail -f /tmp/pokerlite-lobby.log"
+echo "   tail -f /tmp/pokerlite-game.log"
+echo "   tail -f /tmp/pokerlite-frontend.log"
+echo ""
+echo "🛑 Stop all: ./dev-stop.sh"
+echo ""
