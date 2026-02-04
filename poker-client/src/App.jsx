@@ -1,22 +1,17 @@
-import { useState } from 'react'
-import PokerTable from './components/PokerTable'
-import ConnectionPanel from './components/ConnectionPanel'
-import { PokerGameProvider } from './hooks/usePokerGame.jsx'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import Lobby from './components/Lobby'
+import GamePage from './components/GamePage'
 import './App.css'
 
 function App() {
   return (
-    <PokerGameProvider>
-      <div className="app">
-        <header className="app-header">
-          <h1>♠️ PokerLite ♥️</h1>
-          <ConnectionPanel />
-        </header>
-        <main className="app-main">
-          <PokerTable />
-        </main>
-      </div>
-    </PokerGameProvider>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Lobby />} />
+        <Route path="/table/:tableId" element={<GamePage />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
   )
 }
 

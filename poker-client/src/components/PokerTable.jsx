@@ -28,8 +28,8 @@ const getPositionBySeat = (seat) => {
   }
 }
 
-function PokerTable() {
-  const { gameState, myPid, handResult, joinWaitlist, leaveWaitlist } = usePokerGame()
+function PokerTable({ tableId }) {
+  const { gameState, myPid, handResult, joinWaitlist, leaveWaitlist } = usePokerGame(tableId)
 
   const myPlayer = useMemo(() => {
     if (!gameState || !myPid) return null
