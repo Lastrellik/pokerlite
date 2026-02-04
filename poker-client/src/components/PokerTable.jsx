@@ -1,4 +1,5 @@
 import { useMemo, useCallback, useState, useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { usePokerGame } from '../hooks/usePokerGame.jsx'
 import Card from './Card'
 import Player from './Player'
@@ -29,12 +30,24 @@ const getPositionBySeat = (seat) => {
 }
 
 function PokerTable({ tableId }) {
+  const navigate = useNavigate()
   const { gameState, myPid, handResult, joinWaitlist, leaveWaitlist } = usePokerGame(tableId)
 
   const myPlayer = useMemo(() => {
     if (!gameState || !myPid) return null
     return gameState.players?.find(p => p.pid === myPid)
   }, [gameState, myPid])
+
+  // Redirect to lobby if player busts out (loses all money)
+  useEffect(() => {
+    if (myPlayer && myPlayer.stack === 0 && myPlayer.connected) {
+      // Give 3 seconds to see the final result before redirecting
+      const redirectTimer = setTimeout(() => {
+        navigate('/')
+      }, 3000)
+      return () => clearTimeout(redirectTimer)
+    }
+  }, [myPlayer, navigate])
 
   const otherPlayers = useMemo(() => {
     if (!gameState || !myPid) return []

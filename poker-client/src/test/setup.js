@@ -1,34 +1,26 @@
 import '@testing-library/jest-dom'
+import { afterEach, vi } from 'vitest'
+import { cleanup } from '@testing-library/react'
 
-// Mock WebSocket for tests
-class MockWebSocket {
-  constructor(url) {
-    this.url = url
-    this.readyState = WebSocket.CONNECTING
-    setTimeout(() => {
-      this.readyState = WebSocket.OPEN
-      this.onopen?.()
-    }, 0)
-  }
+// Cleanup after each test
+afterEach(() => {
+  cleanup()
+})
 
-  send(data) {
-    this.lastSentData = data
-  }
+// Mock WebSocket
+global.WebSocket = vi.fn(() => ({
+  send: vi.fn(),
+  close: vi.fn(),
+  addEventListener: vi.fn(),
+  removeEventListener: vi.fn(),
+  readyState: 1,
+}))
 
-  close() {
-    this.readyState = WebSocket.CLOSED
-    this.onclose?.()
-  }
-
-  // Helper to simulate receiving a message
-  simulateMessage(data) {
-    this.onmessage?.({ data: JSON.stringify(data) })
-  }
+// Mock localStorage
+const localStorageMock = {
+  getItem: vi.fn(),
+  setItem: vi.fn(),
+  removeItem: vi.fn(),
+  clear: vi.fn(),
 }
-
-MockWebSocket.CONNECTING = 0
-MockWebSocket.OPEN = 1
-MockWebSocket.CLOSING = 2
-MockWebSocket.CLOSED = 3
-
-global.WebSocket = MockWebSocket
+global.localStorage = localStorageMock
