@@ -45,6 +45,9 @@ async def _timeout_checker(table_id: str):
                 else:
                     # Deal next street
                     advance_street(table)
+                    # Clear turn state during runout (no one to act)
+                    table.current_turn_pid = None
+                    table.turn_deadline = None
                     street_names = {"flop": "Flop", "turn": "Turn", "river": "River"}
                     street_name = street_names.get(table.street, table.street)
                     info_msg = f"📋 Dealing {street_name}: {' '.join(table.board)}"

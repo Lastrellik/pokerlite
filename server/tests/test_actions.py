@@ -182,3 +182,38 @@ class TestActionHandling:
         
         assert table.hand_in_progress is False
         assert table.showdown_data is not None
+
+    @pytest.mark.asyncio
+    async def test_runout_clears_turn_state(self, table_with_three_players):
+        """Test that turn state is cleared when entering runout mode."""
+        table = table_with_three_players
+        start_new_hand(table)
+
+        # Get everyone to call on preflop
+        while table.street == "preflop" and table.current_turn_pid:
+            pid = table.current_turn_pid
+            await handle_message(table, pid, {"type": "action", "action": "call"})
+            # Stop if we advanced to flop
+            if table.street != "preflop":
+                break
+
+        # Now simulate everyone going all-in on flop
+        # Set them all to have same small stack so they all go all-in together
+        for p in table.players.values():
+            p.stack = 50
+
+        # First player goes all-in
+        pid = table.current_turn_pid
+        await handle_message(table, pid, {"type": "action", "action": "all_in"})
+
+        # Second player calls all-in
+        pid = table.current_turn_pid
+        await handle_message(table, pid, {"type": "action", "action": "call"})
+
+        # Third player calls all-in - this completes betting with everyone all-in
+        pid = table.current_turn_pid
+        result = await handle_message(table, pid, {"type": "action", "action": "call"})
+
+        # Should now be in runout mode with turn cleared
+        assert table.runout_in_progress is True
+        assert table.current_turn_pid is None
