@@ -77,6 +77,7 @@ def public_state(table: TableState, viewer_pid: Optional[str] = None) -> dict:
         "bb_pid": bb_pid,
         "current_turn_pid": table.current_turn_pid,
         "turn_deadline": table.turn_deadline,
+        "turn_timeout_seconds": table.turn_timeout_seconds,
         "pot": table.pot,
         "board": table.board,
         "street": table.street,

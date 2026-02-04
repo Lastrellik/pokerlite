@@ -3,7 +3,7 @@ import { usePokerGame } from '../hooks/usePokerGame.jsx'
 import TurnTimer from './TurnTimer'
 import './ActionButtons.css'
 
-function ActionButtons({ isMyTurn, toCall, currentBet, handInProgress, playerCount, turnDeadline, myStack }) {
+function ActionButtons({ isMyTurn, toCall, currentBet, handInProgress, playerCount, turnDeadline, turnTimeoutSeconds, myStack }) {
   const { sendAction, startHand } = usePokerGame()
   const [raiseAmount, setRaiseAmount] = useState(20)
 
@@ -94,7 +94,7 @@ function ActionButtons({ isMyTurn, toCall, currentBet, handInProgress, playerCou
       )}
 
       {isMyTurn && handInProgress && (
-        <TurnTimer deadline={turnDeadline} isMyTurn={isMyTurn} />
+        <TurnTimer deadline={turnDeadline} isMyTurn={isMyTurn} turnTimeoutSeconds={turnTimeoutSeconds} />
       )}
     </div>
   )

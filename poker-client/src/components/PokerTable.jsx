@@ -432,6 +432,7 @@ function PokerTable({ tableId }) {
             handInProgress={gameState?.hand_in_progress || false}
             playerCount={eligiblePlayerCount}
             turnDeadline={gameState?.turn_deadline}
+            turnTimeoutSeconds={gameState?.turn_timeout_seconds || 30}
             myStack={myPlayer?.stack || 0}
           />
         </div>

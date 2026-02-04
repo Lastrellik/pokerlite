@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import './TurnTimer.css'
 
-function TurnTimer({ deadline, isMyTurn }) {
+function TurnTimer({ deadline, isMyTurn, turnTimeoutSeconds = 30 }) {
   const [timeLeft, setTimeLeft] = useState(0)
 
   useEffect(() => {
@@ -29,7 +29,7 @@ function TurnTimer({ deadline, isMyTurn }) {
     return null
   }
 
-  const percentage = (timeLeft / 20) * 100
+  const percentage = (timeLeft / turnTimeoutSeconds) * 100
   const isUrgent = timeLeft < 5
 
   return (
