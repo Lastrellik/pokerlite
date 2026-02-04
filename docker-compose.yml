@@ -1,26 +1,39 @@
 version: '3.8'
 
 services:
-  pokerlite:
+  lobby:
     build:
-      context: .
+      context: ./services/lobby
       dockerfile: Dockerfile
     ports:
       - "8000:8000"
     environment:
       - HOST=0.0.0.0
       - PORT=8000
-      # Add these when you implement them later:
-      # - DATABASE_URL=postgresql://user:password@postgres:5432/pokerlite
-      # - REDIS_URL=redis://redis:6379
-      # - SECRET_KEY=your-secret-key
-    # Uncomment when you add database later:
-    # depends_on:
-    #   - postgres
-    #   - redis
+      - CORS_ORIGINS=http://localhost:5173,http://localhost:3000
+      - GAME_WS_URL=ws://localhost:8001
     restart: unless-stopped
+    networks:
+      - pokerlite-network
 
-  # Uncomment when you're ready to add PostgreSQL:
+  game:
+    build:
+      context: .
+      dockerfile: services/game/Dockerfile
+    ports:
+      - "8001:8001"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8001
+      - CORS_ORIGINS=http://localhost:5173,http://localhost:3000
+    restart: unless-stopped
+    networks:
+      - pokerlite-network
+
+  # Frontend is run separately with npm run dev for development
+  # For production, build frontend and serve from one of the backend services
+
+  # Uncomment when ready for PostgreSQL (lobby persistence):
   # postgres:
   #   image: postgres:15-alpine
   #   environment:
@@ -31,16 +44,23 @@ services:
   #     - postgres_data:/var/lib/postgresql/data
   #   ports:
   #     - "5432:5432"
+  #   networks:
+  #     - pokerlite-network
 
-  # Uncomment when you're ready to add Redis:
+  # Uncomment when ready for Redis (game state coordination):
   # redis:
   #   image: redis:7-alpine
   #   ports:
   #     - "6379:6379"
   #   volumes:
   #     - redis_data:/data
+  #   networks:
+  #     - pokerlite-network
 
-# Uncomment when adding persistence:
+networks:
+  pokerlite-network:
+    driver: bridge
+
 # volumes:
 #   postgres_data:
 #   redis_data:

@@ -1,60 +1,66 @@
 #!/bin/bash
 
-# PokerLite Development Startup Script
-# Starts both backend and frontend in development mode
+# Script to start all services for local development
+# Usage: ./dev-start.sh
 
 set -e
 
-echo "🎰 Starting PokerLite Development Servers"
-echo "========================================="
+echo "🚀 Starting PokerLite Development Environment"
 echo ""
 
-# Check if setup has been run
-if [ ! -d "server/.venv" ]; then
-    echo "❌ Virtual environment not found. Please run ./dev-setup.sh first."
-    exit 1
-fi
-
-if [ ! -d "poker-client/node_modules" ]; then
-    echo "❌ Node modules not found. Please run ./dev-setup.sh first."
-    exit 1
-fi
-
-# Function to cleanup background processes on exit
-cleanup() {
+# Check if tmux is available
+if ! command -v tmux &> /dev/null; then
+    echo "⚠️  tmux not installed - starting services in background"
     echo ""
-    echo "🛑 Shutting down servers..."
-    kill $BACKEND_PID $FRONTEND_PID 2>/dev/null
-    exit
-}
+    
+    cd services/lobby && .venv/bin/uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 &
+    LOBBY_PID=$!
+    
+    cd ../game && .venv/bin/uvicorn app.main:app --reload --host 0.0.0.0 --port 8001 &
+    GAME_PID=$!
+    
+    cd ../../poker-client && npm run dev &
+    FRONTEND_PID=$!
+    
+    echo "✅ Services started!"
+    echo ""
+    echo "📊 Services:"
+    echo "   - Lobby:    http://localhost:8000"
+    echo "   - Game:     http://localhost:8001"
+    echo "   - Frontend: http://localhost:5173"
+    echo ""
+    echo "PIDs: Lobby=$LOBBY_PID Game=$GAME_PID Frontend=$FRONTEND_PID"
+    echo ""
+    echo "Press Ctrl+C to stop all services"
+    
+    trap "kill $LOBBY_PID $GAME_PID $FRONTEND_PID 2>/dev/null" EXIT
+    wait
+    
+    exit 0
+fi
 
-trap cleanup SIGINT SIGTERM
+SESSION="pokerlite"
 
-# Start backend
-echo "🚀 Starting backend server on http://localhost:8000"
-cd server
-source .venv/bin/activate
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 &
-BACKEND_PID=$!
-cd ..
+# Kill existing session if it exists
+tmux kill-session -t $SESSION 2>/dev/null || true
 
-# Give backend a moment to start
-sleep 2
+# Create new session
+tmux new-session -d -s $SESSION -n "lobby"
 
-# Start frontend
-echo "🚀 Starting frontend dev server on http://localhost:5173"
-cd poker-client
-npm run dev &
-FRONTEND_PID=$!
-cd ..
+# Window 0: Lobby service
+tmux send-keys -t $SESSION:0 "cd services/lobby && source .venv/bin/activate && uvicorn app.main:app --reload --host 0.0.0.0 --port 8000" C-m
 
+# Window 1: Game service
+tmux new-window -t $SESSION:1 -n "game"
+tmux send-keys -t $SESSION:1 "cd services/game && source .venv/bin/activate && uvicorn app.main:app --reload --host 0.0.0.0 --port 8001" C-m
+
+# Window 2: Frontend
+tmux new-window -t $SESSION:2 -n "frontend"
+tmux send-keys -t $SESSION:2 "cd poker-client && npm run dev" C-m
+
+# Window 3: Shell
+tmux new-window -t $SESSION:3 -n "shell"
+
+echo "✅ Services starting in tmux session '$SESSION'"
 echo ""
-echo "✅ Both servers are running!"
-echo "   Backend:  http://localhost:8000"
-echo "   Frontend: http://localhost:5173"
-echo ""
-echo "Press Ctrl+C to stop both servers"
-echo ""
-
-# Wait for both processes
-wait $BACKEND_PID $FRONTEND_PID
+tmux attach-session -t $SESSION
