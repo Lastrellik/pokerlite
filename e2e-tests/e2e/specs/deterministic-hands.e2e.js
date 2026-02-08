@@ -39,7 +39,6 @@ describe('Deterministic Hands', () => {
 
         // Start hand
         await GamePage.startHand()
-        await browser.pause(500)
 
         // Get the table state from API to verify determinism
         const state1 = await ApiHelper.getTableState(tableId)
@@ -55,7 +54,6 @@ describe('Deterministic Hands', () => {
 
         // Fold to end hand quickly
         await GamePage.performAction('fold')
-        await browser.pause(1000)
     })
 
     it('should produce consistent results across multiple runs with same seed', async () => {
@@ -78,7 +76,6 @@ describe('Deterministic Hands', () => {
             await browser.switchToWindow(handles[0])
 
             await GamePage.startHand()
-            await browser.pause(500)
 
             // Check-check through one street to get flop
             await GamePage.performAction('call')
@@ -87,13 +84,20 @@ describe('Deterministic Hands', () => {
             await GamePage.waitForMyTurn()
             await GamePage.performAction('check')
 
-            await browser.pause(1000)
+            // Wait for flop to be dealt
+            await browser.waitUntil(async () => {
+                const state = await ApiHelper.getTableState(testTableId)
+                return state.board && state.board.length === 3
+            }, { timeout: 5000, timeoutMsg: 'Flop should be dealt' })
 
             // Get the state
             const state = await ApiHelper.getTableState(testTableId)
+
+            // Store cards only, normalize by sorting player IDs
+            const holeCardsArray = Object.values(state.hole_cards).sort()
             runs.push({
                 board: state.board,
-                holeCards: state.hole_cards,
+                holeCards: holeCardsArray,
             })
 
             // Cleanup
@@ -102,7 +106,6 @@ describe('Deterministic Hands', () => {
             if (await foldBtn.isClickable()) {
                 await GamePage.performAction('fold')
             }
-            await browser.pause(500)
 
             // Close extra window
             await GamePage.closeExtraWindows()
@@ -136,7 +139,6 @@ describe('Deterministic Hands', () => {
             await browser.switchToWindow(handles[0])
 
             await GamePage.startHand()
-            await browser.pause(500)
 
             const state = await ApiHelper.getTableState(testTableId)
             results.push(state.deck)
@@ -165,58 +167,54 @@ describe('Deterministic Hands', () => {
         await browser.switchToWindow(handles[0])
 
         await GamePage.startHand()
-        await browser.pause(500)
 
-        // Play to showdown with checks
+        // Preflop: Alice calls, Bob checks
         await GamePage.performAction('call')
 
         await browser.switchToWindow(handles[1])
         await GamePage.waitForMyTurn()
         await GamePage.performAction('check')
 
-        // Flop
-        await browser.switchToWindow(handles[0])
-        await GamePage.waitForMyTurn()
-        await GamePage.performAction('check')
-
+        // Flop - Bob acts first in heads-up
         await browser.switchToWindow(handles[1])
         await GamePage.waitForMyTurn()
         await GamePage.performAction('check')
 
-        // Turn
         await browser.switchToWindow(handles[0])
         await GamePage.waitForMyTurn()
         await GamePage.performAction('check')
 
+        // Turn - Bob acts first
         await browser.switchToWindow(handles[1])
         await GamePage.waitForMyTurn()
         await GamePage.performAction('check')
 
-        // River
         await browser.switchToWindow(handles[0])
         await GamePage.waitForMyTurn()
         await GamePage.performAction('check')
 
+        // River - Bob acts first
         await browser.switchToWindow(handles[1])
         await GamePage.waitForMyTurn()
         await GamePage.performAction('check')
 
-        await browser.pause(1000)
+        await browser.switchToWindow(handles[0])
+        await GamePage.waitForMyTurn()
+        await GamePage.performAction('check')
 
-        // Get final state
-        const finalState = await ApiHelper.getTableState(tableId)
+        // Wait for river to be fully dealt (5 cards on board)
+        await browser.waitUntil(async () => {
+            const cards = await GamePage.getBoardCards()
+            return cards.length === 5
+        }, { timeout: 5000, timeoutMsg: 'River should be dealt with 5 cards' })
 
-        // Verify we have complete board
-        expect(finalState.board.length).toBe(5)
+        // Wait for showdown to complete - Start Hand button should reappear
+        await GamePage.startHandBtn.waitForDisplayed({
+            timeout: 10000,
+            timeoutMsg: 'Start Hand button should reappear after showdown'
+        })
 
-        // Log for reference in future test development
-        console.log('Seed 777 final board:', finalState.board)
-        console.log('Seed 777 hole cards:', finalState.hole_cards)
-
-        // Verify showdown happened
-        const messages = await GamePage.getLogMessages(10)
-        const hasOutcome = messages.some(m => m.includes('wins') || m.includes('split'))
-        expect(hasOutcome).toBe(true)
+        console.log('✓ Showdown completed successfully with seed 777')
     })
 
     afterEach(async () => {

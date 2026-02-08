@@ -5,16 +5,17 @@ import BasePage from './base.page.js'
  */
 class LobbyPage extends BasePage {
     // Selectors
-    get createTableBtn() { return $('button*=Create Table') }
-    get tablesList() { return $('.tables-list') }
+    get createTableBtn() { return $('.btn-create') }
+    get tablesGrid() { return $('.tables-grid') }
 
     // Modal selectors
-    get modalSmallBlind() { return $('input[id="smallBlind"]') }
-    get modalBigBlind() { return $('input[id="bigBlind"]') }
-    get modalMaxPlayers() { return $('select[id="maxPlayers"]') }
-    get modalTurnTimeout() { return $('input[id="turnTimeoutSeconds"]') }
-    get modalSubmit() { return $('.modal button[type="submit"]') }
-    get modalCancel() { return $('.modal button*=Cancel') }
+    get modalName() { return $('input[id="name"]') }
+    get modalSmallBlind() { return $('input[id="small_blind"]') }
+    get modalBigBlind() { return $('input[id="big_blind"]') }
+    get modalMaxPlayers() { return $('select[id="max_players"]') }
+    get modalTurnTimeout() { return $('input[id="timeout"]') }
+    get modalSubmit() { return $('.modal-content button[type="submit"]') }
+    get modalCancel() { return $('.modal-content button[type="button"]') }
 
     /**
      * Open lobby page
@@ -29,7 +30,11 @@ class LobbyPage extends BasePage {
      */
     async createTable(config = {}) {
         await this.createTableBtn.click()
-        await this.modalSmallBlind.waitForDisplayed()
+        await this.modalName.waitForDisplayed()
+
+        // Always set the name (required field)
+        const name = config.name || 'Test Table'
+        await this.modalName.setValue(name)
 
         if (config.smallBlind !== undefined) {
             await this.modalSmallBlind.clearValue()
@@ -53,16 +58,18 @@ class LobbyPage extends BasePage {
         await this.modalSubmit.click()
 
         // Wait for modal to close
-        await browser.pause(500)
+        await browser.waitUntil(async () => {
+            return !(await this.modalSubmit.isDisplayed().catch(() => false))
+        }, { timeout: 5000, timeoutMsg: 'Modal should close after creating table' })
     }
 
     /**
      * Join the first available table
      */
     async joinFirstTable() {
-        const tableLink = await $('.table-item a')
-        await tableLink.waitForClickable()
-        await tableLink.click()
+        const joinBtn = await $('.table-card .btn-join')
+        await joinBtn.waitForClickable()
+        await joinBtn.click()
 
         // Wait for navigation
         await browser.waitUntil(
@@ -75,7 +82,7 @@ class LobbyPage extends BasePage {
      * Get the number of tables in the lobby
      */
     async getTableCount() {
-        const tables = await $$('.table-item')
+        const tables = await $$('.table-card')
         return tables.length
     }
 
@@ -83,7 +90,7 @@ class LobbyPage extends BasePage {
      * Get table information
      */
     async getTableInfo(index = 0) {
-        const tables = await $$('.table-item')
+        const tables = await $$('.table-card')
         if (tables.length === 0) return null
 
         const table = tables[index]
