@@ -1,0 +1,104 @@
+.side-pots-display {
+  position: absolute;
+  top: 120px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.9);
+  border: 2px solid #ffd700;
+  border-radius: 12px;
+  padding: 16px 20px;
+  min-width: 280px;
+  box-shadow: 0 8px 24px rgba(255, 215, 0, 0.3);
+  z-index: 100;
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.side-pots-title {
+  font-size: 14px;
+  font-weight: bold;
+  text-align: center;
+  color: #ffd700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 215, 0, 0.3);
+  padding-bottom: 8px;
+}
+
+.side-pots-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.side-pot-item {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 10px 12px;
+  border-left: 3px solid #4CAF50;
+}
+
+.side-pot-item:first-child {
+  border-left-color: #ffd700;
+}
+
+.side-pot-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.side-pot-type {
+  font-weight: 600;
+  color: #fff;
+  font-size: 13px;
+}
+
+.side-pot-amount {
+  font-weight: 700;
+  color: #4CAF50;
+  font-size: 16px;
+}
+
+.side-pot-item:first-child .side-pot-amount {
+  color: #ffd700;
+}
+
+.side-pot-winners {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.8);
+  font-style: italic;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .side-pots-display {
+    top: 100px;
+    min-width: 240px;
+    padding: 12px 16px;
+  }
+
+  .side-pots-title {
+    font-size: 12px;
+  }
+
+  .side-pot-type {
+    font-size: 12px;
+  }
+
+  .side-pot-amount {
+    font-size: 14px;
+  }
+}

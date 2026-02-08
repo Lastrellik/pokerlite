@@ -28,12 +28,24 @@ export function PokerGameProvider({ children }) {
 
     ws.onopen = () => {
       console.log('WebSocket connected')
-      // Reuse pid from localStorage if available (for reconnections/duplicate tabs)
-      const savedPid = localStorage.getItem(`pid_${tableId}`)
+      // Only reuse pid if the player name matches (for reconnections)
+      const savedData = sessionStorage.getItem(`player_${tableId}`)
+      let savedPid = null
+      if (savedData) {
+        try {
+          const { name, pid } = JSON.parse(savedData)
+          // Only reuse pid if same player name
+          if (name === playerName) {
+            savedPid = pid
+          }
+        } catch (e) {
+          // Invalid saved data, ignore
+        }
+      }
       ws.send(JSON.stringify({
         type: 'join',
         name: playerName,
-        pid: savedPid  // Reuse existing pid or null for new player
+        pid: savedPid  // Reuse existing pid only if same name, or null for new player
       }))
       setConnected(true)
       addLog(`Connected to table: ${tableId}`)
@@ -45,8 +57,8 @@ export function PokerGameProvider({ children }) {
 
         if (msg.type === 'welcome') {
           setMyPid(msg.pid)
-          // Save pid to localStorage for reconnections (keyed by table)
-          localStorage.setItem(`pid_${tableId}`, msg.pid)
+          // Save both name and pid so we only reuse pid if same player reconnects
+          sessionStorage.setItem(`player_${tableId}`, JSON.stringify({ name: playerName, pid: msg.pid }))
           addLog(`Joined as ${playerName} (${msg.pid.substring(0, 8)})`)
         } else if (msg.type === 'state') {
           setGameState(msg.state)
@@ -77,9 +89,9 @@ export function PokerGameProvider({ children }) {
       wsRef.current.close()
       wsRef.current = null
     }
-    // Clear saved pid when explicitly disconnecting
+    // Clear saved player data when explicitly disconnecting
     if (tableId) {
-      localStorage.removeItem(`pid_${tableId}`)
+      sessionStorage.removeItem(`player_${tableId}`)
     }
     setConnected(false)
   }, [])

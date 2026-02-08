@@ -6,6 +6,7 @@ import Player from './Player'
 import ActionButtons from './ActionButtons'
 import GameLog from './GameLog'
 import SpectatorPanel from './SpectatorPanel'
+import SidePots from './SidePots'
 import './PokerTable.css'
 
 // Ellipse dimensions for player positioning (table is 800x500)
@@ -363,6 +364,11 @@ function PokerTable({ tableId }) {
               : 'Waiting for hand...'}
           </div>
         </div>
+
+        {/* Show side pots breakdown during showdown */}
+        {shouldHighlight && gameState?.showdown?.side_pots && (
+          <SidePots sidePots={gameState.showdown.side_pots} />
+        )}
 
         {/* All players around the table (including current player) */}
         <div className="other-players">

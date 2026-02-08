@@ -14,8 +14,8 @@ describe('usePokerGame', () => {
 
   beforeEach(() => {
     mockWebSocket = null
-    // Clear localStorage before each test
-    localStorage.clear()
+    // Clear sessionStorage before each test
+    sessionStorage.clear()
     // Capture the WebSocket instance when created
     const OriginalWebSocket = global.WebSocket
     global.WebSocket = class extends OriginalWebSocket {
@@ -71,9 +71,9 @@ describe('usePokerGame', () => {
       })
     })
 
-    it('reuses pid from localStorage on reconnect', async () => {
-      // Simulate previously saved pid
-      localStorage.setItem('pid_table-1', 'saved-pid-123')
+    it('reuses pid from sessionStorage on reconnect with same name', async () => {
+      // Simulate previously saved player data
+      sessionStorage.setItem('player_table-1', JSON.stringify({ name: 'Alice', pid: 'saved-pid-123' }))
 
       const { result } = renderPokerHook()
 
@@ -86,6 +86,27 @@ describe('usePokerGame', () => {
         const sent = JSON.parse(mockWebSocket.lastSentData)
         expect(sent.type).toBe('join')
         expect(sent.pid).toBe('saved-pid-123')
+      })
+    })
+
+    it('does not reuse pid when player name changes', async () => {
+      // Simulate Alice's saved data
+      sessionStorage.setItem('player_table-1', JSON.stringify({ name: 'Alice', pid: 'alice-pid-123' }))
+
+      const { result } = renderPokerHook()
+
+      // Bob tries to join (different name)
+      act(() => {
+        result.current.connect('Bob', 'table-1')
+      })
+
+      await waitFor(() => {
+        expect(mockWebSocket.lastSentData).toBeDefined()
+        const sent = JSON.parse(mockWebSocket.lastSentData)
+        expect(sent.type).toBe('join')
+        expect(sent.name).toBe('Bob')
+        // Should NOT reuse Alice's pid
+        expect(sent.pid).toBeNull()
       })
     })
 
@@ -104,7 +125,7 @@ describe('usePokerGame', () => {
   })
 
   describe('message handling', () => {
-    it('sets myPid on welcome message and saves to localStorage', async () => {
+    it('sets myPid on welcome message and saves to sessionStorage', async () => {
       const { result } = renderPokerHook()
 
       act(() => {
@@ -118,7 +139,8 @@ describe('usePokerGame', () => {
       })
 
       expect(result.current.myPid).toBe('player-123')
-      expect(localStorage.getItem('pid_table-1')).toBe('player-123')
+      const savedData = JSON.parse(sessionStorage.getItem('player_table-1'))
+      expect(savedData).toEqual({ name: 'Alice', pid: 'player-123' })
     })
 
     it('updates gameState on state message', async () => {
@@ -219,7 +241,7 @@ describe('usePokerGame', () => {
   })
 
   describe('disconnect', () => {
-    it('closes connection and clears localStorage', async () => {
+    it('closes connection and clears sessionStorage', async () => {
       const { result } = renderPokerHook()
 
       act(() => {
@@ -228,19 +250,19 @@ describe('usePokerGame', () => {
 
       await waitFor(() => expect(result.current.connected).toBe(true))
 
-      // Simulate receiving welcome to save pid
+      // Simulate receiving welcome to save player data
       act(() => {
         mockWebSocket.simulateMessage({ type: 'welcome', pid: 'player-123' })
       })
 
-      expect(localStorage.getItem('pid_table-1')).toBe('player-123')
+      expect(sessionStorage.getItem('player_table-1')).not.toBeNull()
 
       act(() => {
         result.current.disconnect('table-1')
       })
 
       expect(result.current.connected).toBe(false)
-      expect(localStorage.getItem('pid_table-1')).toBeNull()
+      expect(sessionStorage.getItem('player_table-1')).toBeNull()
     })
   })
 

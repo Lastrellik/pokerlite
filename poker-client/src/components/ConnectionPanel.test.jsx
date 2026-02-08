@@ -32,7 +32,7 @@ describe('ConnectionPanel Component', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    localStorage.clear()
+    sessionStorage.clear()
   })
 
   const renderPanel = () => {
@@ -81,7 +81,7 @@ describe('ConnectionPanel Component', () => {
     })
   })
 
-  it('saves player name to localStorage on connect', async () => {
+  it('saves player name to sessionStorage on connect', async () => {
     renderPanel()
     
     const input = screen.getByPlaceholderText('Enter your name')
@@ -91,7 +91,7 @@ describe('ConnectionPanel Component', () => {
     await user.click(joinButton)
 
     await waitFor(() => {
-      expect(localStorage.setItem).toHaveBeenCalledWith('playerName', 'TestPlayer')
+      expect(sessionStorage.setItem).toHaveBeenCalledWith('playerName', 'TestPlayer')
     })
   })
 
@@ -106,8 +106,8 @@ describe('ConnectionPanel Component', () => {
     })
   })
 
-  it('pre-fills name from localStorage but allows editing', async () => {
-    localStorage.setItem('playerName', 'SavedName')
+  it('pre-fills name from sessionStorage but allows editing', async () => {
+    sessionStorage.setItem('playerName', 'SavedName')
 
     renderPanel()
 
@@ -126,7 +126,7 @@ describe('ConnectionPanel - Connected State', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    localStorage.setItem('playerName', 'SavedPlayer')
+    sessionStorage.setItem('playerName', 'SavedPlayer')
   })
 
   it('shows connected status when connected', () => {

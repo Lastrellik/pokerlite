@@ -8,15 +8,17 @@ function ConnectionPanel() {
   const navigate = useNavigate()
   const { connected, myPid, connect, disconnect } = usePokerGame()
 
-  // Load name from localStorage or use default
+  // Use sessionStorage instead of localStorage so each tab is a new player
+  // Start with empty name so user must enter it for each new tab
   const [playerName, setPlayerName] = useState(
-    localStorage.getItem('playerName') || ''
+    sessionStorage.getItem('playerName') || ''
   )
 
   const handleConnect = () => {
     if (playerName && tableId) {
       connect(playerName, tableId)
-      localStorage.setItem('playerName', playerName)
+      // Save to sessionStorage (per-tab) instead of localStorage (shared)
+      sessionStorage.setItem('playerName', playerName)
     }
   }
 
