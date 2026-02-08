@@ -40,15 +40,16 @@ function PokerTable({ tableId }) {
   }, [gameState, myPid])
 
   // Redirect to lobby if player busts out (loses all money)
+  // BUT only after the hand ends - don't redirect during all-in!
   useEffect(() => {
-    if (myPlayer && myPlayer.stack === 0 && myPlayer.connected) {
+    if (myPlayer && myPlayer.stack === 0 && myPlayer.connected && !gameState?.hand_in_progress) {
       // Give 3 seconds to see the final result before redirecting
       const redirectTimer = setTimeout(() => {
         navigate('/')
       }, 3000)
       return () => clearTimeout(redirectTimer)
     }
-  }, [myPlayer, navigate])
+  }, [myPlayer, navigate, gameState?.hand_in_progress])
 
   const otherPlayers = useMemo(() => {
     if (!gameState || !myPid) return []
@@ -69,6 +70,56 @@ function PokerTable({ tableId }) {
     if (!gameState?.players) return 0
     return gameState.players.filter(p => p.connected && p.stack > 0).length
   }, [gameState?.players])
+
+  // Track side pot warning - persist once it appears until hand ends
+  const [sidePotsWarning, setSidePotsWarning] = useState(null)
+
+  useEffect(() => {
+    if (!gameState?.hand_in_progress) {
+      // Clear when hand ends
+      setSidePotsWarning(null)
+      return
+    }
+
+    // Don't clear during showdown - keep showing the warning!
+    // Only skip setting NEW warnings during showdown (but keep existing one)
+    const isShowdown = gameState?.showdown && !gameState?.showdown?.runout
+
+    // Check if any non-folded players are all-in
+    const nonFoldedPlayers = gameState.players?.filter(p => !p.folded && p.connected) || []
+    const allInPlayers = nonFoldedPlayers.filter(p => p.stack === 0)
+
+    if (allInPlayers.length === 0) {
+      // No all-in players - clear warning if not in showdown
+      if (!isShowdown) {
+        setSidePotsWarning(null)
+      }
+      return
+    }
+
+    // Don't update if already showing and we're in final showdown
+    if (sidePotsWarning && isShowdown) return
+
+    // Side pots are forming - set the warning and keep it
+    const playersWithChips = nonFoldedPlayers.filter(p => p.stack > 0)
+    const allInNames = allInPlayers.map(p => p.name).join(', ')
+    const potAmount = gameState.pot || 0
+
+    if (playersWithChips.length === 0) {
+      setSidePotsWarning({
+        message: `All-in showdown`,
+        details: `${allInNames} - Pot: $${potAmount}`,
+        count: allInPlayers.length
+      })
+    } else {
+      const activeNames = playersWithChips.map(p => p.name).join(', ')
+      setSidePotsWarning({
+        message: `Side pots forming`,
+        details: `All-in: ${allInNames} • Active: ${activeNames} • Pot: $${potAmount}`,
+        count: allInPlayers.length
+      })
+    }
+  }, [gameState])
 
   // Helper to get showdown data for a player
   const getShowdownData = useCallback((pid) => {
@@ -364,6 +415,18 @@ function PokerTable({ tableId }) {
               : 'Waiting for hand...'}
           </div>
         </div>
+
+        {/* Side pot warning - positioned on the side */}
+        {sidePotsWarning && (
+          <div className="side-pot-warning-container">
+            <div className="side-pot-warning">
+              <div className="warning-title">⚠️ {sidePotsWarning.message}</div>
+              {sidePotsWarning.details && (
+                <div className="warning-details">{sidePotsWarning.details}</div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Show side pots breakdown during showdown */}
         {shouldHighlight && gameState?.showdown?.side_pots && (

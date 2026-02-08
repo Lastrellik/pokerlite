@@ -10,8 +10,22 @@ function ActionButtons({ isMyTurn, toCall, currentBet, handInProgress, playerCou
   const handleFold = () => sendAction('fold')
   const handleCheck = () => sendAction('check')
   const handleCall = () => sendAction('call')
-  const handleRaise = () => sendAction('raise', parseInt(raiseAmount))
+  const handleRaise = () => {
+    const amount = parseInt(raiseAmount)
+    // Validate: must be positive and greater than current bet
+    if (amount > 0 && amount > currentBet) {
+      sendAction('raise', amount)
+    }
+  }
   const handleAllIn = () => sendAction('all_in')
+
+  const handleRaiseAmountChange = (e) => {
+    const value = e.target.value
+    // Only allow positive numbers
+    if (value === '' || parseInt(value) >= 0) {
+      setRaiseAmount(value)
+    }
+  }
 
   const canCheck = isMyTurn && toCall === 0
   const canCall = isMyTurn && toCall > 0
@@ -65,14 +79,15 @@ function ActionButtons({ isMyTurn, toCall, currentBet, handInProgress, playerCou
             <input
               type="number"
               value={raiseAmount}
-              onChange={(e) => setRaiseAmount(e.target.value)}
+              onChange={handleRaiseAmountChange}
               min={currentBet * 2 || 10}
+              step="1"
               disabled={!isMyTurn}
               className="raise-input"
             />
             <button
               onClick={handleRaise}
-              disabled={!isMyTurn}
+              disabled={!isMyTurn || raiseAmount <= 0 || raiseAmount <= currentBet}
               className="btn-action btn-raise"
             >
               🚀 Raise

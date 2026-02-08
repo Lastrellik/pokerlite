@@ -117,6 +117,9 @@ async def _handle_action(table: TableState, pid: str, msg: Dict[str, Any]) -> Op
 
     # Handle raise
     elif action == "raise":
+        # Validate amount is positive
+        if amount is None or amount <= 0:
+            return None  # Invalid raise amount
         process_raise(table, pid, amount)
         action_msg = f"{player.name} raises to ${amount}"
 

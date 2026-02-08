@@ -604,10 +604,11 @@ class TestBustedPlayerVisibility:
         # Run showdown (p1 wins)
         run_showdown(table)
 
-        # p2 should still be SEATED with stack=0 after showdown
-        assert table.players["p2"].role == PlayerRole.SEATED
-        assert table.players["p2"].seat == 2
+        # p2 should be converted to SPECTATOR immediately in _end_hand
+        assert table.players["p2"].role == PlayerRole.SPECTATOR
+        assert table.players["p2"].seat == 0
         assert table.players["p2"].stack == 0
+        assert "p2" in table.spectator_pids
 
     def test_busted_players_converted_on_next_hand_start(self):
         """Test that busted players are converted to spectators when next hand starts."""

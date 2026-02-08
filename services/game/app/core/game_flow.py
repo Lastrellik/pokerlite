@@ -53,8 +53,9 @@ def start_new_hand(table: TableState) -> None:
     from .models import PlayerRole
     from .waitlist import promote_from_waitlist
 
-    # Convert busted players (stack=0) to spectators BEFORE starting new hand
-    # This way they remain visible during showdown of previous hand
+    # Convert busted players to spectators
+    # This happens in _end_hand too, but we check here as well
+    # in case players are already busted (server restart, etc.)
     for player in list(table.players.values()):
         if player.role == PlayerRole.SEATED and player.stack == 0:
             player.role = PlayerRole.SPECTATOR
@@ -487,11 +488,23 @@ def run_showdown(table: TableState) -> str:
 
 def _end_hand(table: TableState) -> None:
     """Clean up hand state and handle player transitions."""
+    from .models import PlayerRole
+
     table.hand_in_progress = False
     table.current_turn_pid = None
     table.pot = 0
     table.board = []
+    table.hole_cards = {}
+    table.player_bets = {}
+    # Note: total_contributions is NOT cleared here because it's used for profit
+    # calculation in the result message after this function returns
+    table.folded_pids = set()
+    table.players_acted = set()
 
-    # Note: Busted players (stack=0) are NOT converted to spectators here
-    # They remain visible until the next hand starts (see start_new_hand)
-    # This allows players to see the showdown results before busted players disappear
+    # Convert busted players (stack=0) to spectators immediately
+    # This prevents the table from getting stuck when a player busts and disconnects
+    for player in list(table.players.values()):
+        if player.role == PlayerRole.SEATED and player.stack == 0:
+            player.role = PlayerRole.SPECTATOR
+            player.seat = 0
+            table.spectator_pids.add(player.pid)

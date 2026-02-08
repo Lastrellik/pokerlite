@@ -129,8 +129,18 @@ async def ws_endpoint(ws: WebSocket, table_id: str):
     pid = hello.get("pid") or secrets.token_hex(8)
 
     async with table.lock:
+        # Check if player is already connected
+        if pid in table.connections:
+            print(f"[WS] WARNING: Player {pid} ({name}) reconnecting - closing old connection")
+            try:
+                old_ws = table.connections[pid]
+                await old_ws.close()
+            except Exception as e:
+                print(f"[WS] Error closing old connection: {e}")
+
         table.upsert_player(pid=pid, name=name)
         table.connections[pid] = ws
+        print(f"[WS] Player {pid} ({name}) connected to table {table_id}")
 
     # Start timeout checker if not running
     if table_id not in _timeout_tasks or _timeout_tasks[table_id].done():
@@ -158,10 +168,13 @@ async def ws_endpoint(ws: WebSocket, table_id: str):
             await broadcast_state(table)
 
     except WebSocketDisconnect:
+        print(f"[WS] Player {pid} ({name}) disconnected from table {table_id}")
         async with table.lock:
             table.mark_disconnected(pid)
             table.connections.pop(pid, None)
             info_msg = handle_disconnect(table, pid)
+            if info_msg:
+                print(f"[WS] Disconnect handled: {info_msg}")
 
         # Broadcast disconnect info if applicable
         if info_msg:
