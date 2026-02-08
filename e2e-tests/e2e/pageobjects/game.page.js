@@ -19,7 +19,7 @@ class GamePage extends BasePage {
 
     // Game info selectors
     get pot() { return $('.pot-amount') }
-    get board() { return $('.board') }
+    get board() { return $('.community-cards') }
     get gameLog() { return $('.game-log') }
 
     /**
@@ -138,8 +138,10 @@ class GamePage extends BasePage {
     async getBoardCards() {
         try {
             const boardElement = await this.board
-            const cards = await boardElement.$$('.card')
-            return await Promise.all(cards.map(card => card.getText()))
+            // Match both regular cards (.card) and animating cards (.card-flip-container)
+            const cards = await boardElement.$$('.card, .card-flip-container')
+            // Just return the count of cards, not the text
+            return cards
         } catch (e) {
             return []
         }
