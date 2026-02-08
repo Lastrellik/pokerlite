@@ -138,9 +138,9 @@ class GamePage extends BasePage {
     async getBoardCards() {
         try {
             const boardElement = await this.board
-            // Match both regular cards (.card) and animating cards (.card-flip-container)
-            const cards = await boardElement.$$('.card, .card-flip-container')
-            // Just return the count of cards, not the text
+            // Match only direct children - either regular cards or animating containers
+            // Using :scope > to avoid counting nested elements twice
+            const cards = await boardElement.$$(':scope > .card, :scope > .card-flip-container')
             return cards
         } catch (e) {
             return []

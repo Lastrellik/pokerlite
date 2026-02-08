@@ -85,39 +85,85 @@ describe('Basic Gameplay', () => {
 
             await GamePage.startHand()
 
-            // Play through preflop: Alice calls, Bob checks
+            console.log('=== PREFLOP ===')
+            // Preflop: Alice calls, Bob checks
             await GamePage.performAction('call')
+            console.log('Alice called')
 
             await browser.switchToWindow(handles[1])
-            await GamePage.waitForMyTurn(15000)  // Increased timeout
+            await GamePage.waitForMyTurn(15000)
             await GamePage.performAction('check')
+            console.log('Bob checked - preflop complete')
 
-            // Switch to Alice's window to check for flop (she acts first postflop)
-            await browser.switchToWindow(handles[0])
+            // FLOP - In heads-up, BB (Bob) acts first post-flop
+            console.log('=== FLOP ===')
+            await browser.switchToWindow(handles[1])
 
-            // Wait for flop to be dealt - board should have 3 cards
+            // Wait for flop
             await browser.waitUntil(async () => {
                 const cards = await GamePage.getBoardCards()
+                console.log('Waiting for flop, board has', cards.length, 'cards')
                 return cards.length === 3
-            }, {
+            }, { timeout: 10000, timeoutMsg: 'Flop should be dealt' })
+
+            await GamePage.waitForMyTurn(15000)
+            await GamePage.performAction('check')
+            console.log('Bob checked on flop')
+
+            await browser.switchToWindow(handles[0])
+            await GamePage.waitForMyTurn(15000)
+            await GamePage.performAction('check')
+            console.log('Alice checked on flop - flop complete')
+
+            // TURN - Bob acts first
+            console.log('=== TURN ===')
+            await browser.switchToWindow(handles[1])
+
+            // Wait for turn
+            await browser.waitUntil(async () => {
+                const cards = await GamePage.getBoardCards()
+                console.log('Waiting for turn, board has', cards.length, 'cards')
+                return cards.length === 4
+            }, { timeout: 10000, timeoutMsg: 'Turn should be dealt' })
+
+            await GamePage.waitForMyTurn(15000)
+            await GamePage.performAction('check')
+            console.log('Bob checked on turn')
+
+            await browser.switchToWindow(handles[0])
+            await GamePage.waitForMyTurn(15000)
+            await GamePage.performAction('check')
+            console.log('Alice checked on turn - turn complete')
+
+            // RIVER - Bob acts first
+            console.log('=== RIVER ===')
+            await browser.switchToWindow(handles[1])
+
+            // Wait for river
+            await browser.waitUntil(async () => {
+                const cards = await GamePage.getBoardCards()
+                console.log('Waiting for river, board has', cards.length, 'cards')
+                return cards.length === 5
+            }, { timeout: 10000, timeoutMsg: 'River should be dealt' })
+
+            await GamePage.waitForMyTurn(15000)
+            await GamePage.performAction('check')
+            console.log('Bob checked on river')
+
+            await browser.switchToWindow(handles[0])
+            await GamePage.waitForMyTurn(15000)
+            await GamePage.performAction('check')
+            console.log('Alice checked on river - river complete')
+
+            // SHOWDOWN
+            console.log('=== SHOWDOWN ===')
+            // Wait for showdown - hand should end and Start Hand button reappears
+            await browser.switchToWindow(handles[0])
+            await GamePage.startHandBtn.waitForDisplayed({
                 timeout: 10000,
-                timeoutMsg: 'Expected 3 flop cards to be dealt after preflop'
+                timeoutMsg: 'Start Hand button should reappear after showdown'
             })
-
-            // Verify we can continue playing - just check that it's someone's turn
-            const turnArrived = await browser.waitUntil(
-                async () => await GamePage.isMyTurn(),
-                { timeout: 5000 }
-            ).catch(() => false)
-
-            // If Alice's turn, check. Otherwise, hand is progressing correctly
-            if (turnArrived) {
-                await GamePage.performAction('check')
-            }
-
-            // Test passes if we got to the flop successfully
-            const finalCards = await GamePage.getBoardCards()
-            expect(finalCards.length).toBeGreaterThanOrEqual(3)
+            console.log('✓ Showdown complete - Start Hand button reappeared')
         })
 
         afterEach(async () => {
