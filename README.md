@@ -224,6 +224,13 @@ pokerlite/
 │   │   ├── hooks/         # usePokerGame, useLobby
 │   │   └── App.jsx        # React Router setup
 │   └── package.json
+├── e2e-tests/             # End-to-end browser tests
+│   ├── e2e/
+│   │   ├── specs/         # Test scenarios
+│   │   ├── pageobjects/   # Page Object Model
+│   │   ├── helpers/       # API helpers
+│   │   └── fixtures/      # Test data
+│   └── package.json       # E2E test dependencies
 ├── docker-compose.yml     # Multi-service orchestration
 ├── dev-start.sh           # Start all services locally
 ├── dev-stop.sh            # Stop all services
@@ -254,11 +261,14 @@ npm test
 
 **E2E Tests (WebdriverIO):**
 ```bash
-# From project root
-npm install  # Install E2E test dependencies
-
 # Make sure all services are running first
 ./dev-start.sh
+
+# Navigate to E2E test directory
+cd e2e-tests
+
+# Install E2E test dependencies (first time only)
+npm install
 
 # Run E2E tests (headed mode - watch tests run)
 npm run test:e2e
