@@ -2,8 +2,10 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 import json
 import secrets
 import asyncio
+import httpx
+import os
 
-from ..core.tables import get_table
+from ..core.tables import get_table, delete_table
 from ..core.protocol import broadcast_state
 from ..core.game import handle_message, handle_disconnect
 from ..core.game_flow import check_turn_timeout
@@ -15,6 +17,35 @@ router = APIRouter()
 
 # Track active timeout checkers per table
 _timeout_tasks: dict[str, asyncio.Task] = {}
+
+LOBBY_URL = os.getenv("LOBBY_URL", "http://localhost:8000")
+
+
+async def cleanup_empty_table(table_id: str) -> None:
+    """Delete table from both game and lobby services if it's empty."""
+    table = get_table(table_id)
+
+    if table.is_empty():
+        print(f"[CLEANUP] Table {table_id} is empty, deleting...")
+
+        # Delete from game service
+        delete_table(table_id)
+
+        # Delete from lobby service
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.delete(f"{LOBBY_URL}/api/tables/{table_id}", timeout=5.0)
+                if response.status_code == 204:
+                    print(f"[CLEANUP] Table {table_id} deleted from lobby")
+                else:
+                    print(f"[CLEANUP] Failed to delete table {table_id} from lobby: {response.status_code}")
+        except Exception as e:
+            print(f"[CLEANUP] Error deleting table {table_id} from lobby: {e}")
+
+        # Stop timeout checker task
+        task = _timeout_tasks.pop(table_id, None)
+        if task and not task.done():
+            task.cancel()
 
 
 async def _timeout_checker(table_id: str):
@@ -170,11 +201,15 @@ async def ws_endpoint(ws: WebSocket, table_id: str):
     except WebSocketDisconnect:
         print(f"[WS] Player {pid} ({name}) disconnected from table {table_id}")
         async with table.lock:
-            table.mark_disconnected(pid)
             table.connections.pop(pid, None)
+
+            # Handle in-game disconnect (fold player out if needed)
             info_msg = handle_disconnect(table, pid)
             if info_msg:
                 print(f"[WS] Disconnect handled: {info_msg}")
+
+            # Remove player completely from table
+            table.remove_player(pid)
 
         # Broadcast disconnect info if applicable
         if info_msg:
@@ -185,3 +220,6 @@ async def ws_endpoint(ws: WebSocket, table_id: str):
                     pass
 
         await broadcast_state(table)
+
+        # Check if table is now empty and clean up if so
+        await cleanup_empty_table(table_id)

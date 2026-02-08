@@ -30,3 +30,11 @@ def get_table(table_id: str) -> TableState:
             _tables[table_id] = TableState(table_id=table_id)
 
     return _tables[table_id]
+
+
+def delete_table(table_id: str) -> bool:
+    """Delete a table from memory. Returns True if deleted, False if not found."""
+    if table_id in _tables:
+        _tables.pop(table_id)
+        return True
+    return False

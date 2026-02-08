@@ -53,7 +53,7 @@
 
 .side-pot-warning-container {
   position: absolute;
-  right: -120px;
+  right: -350px;
   top: 50%;
   transform: translateY(-50%);
   z-index: 20;

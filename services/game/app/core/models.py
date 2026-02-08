@@ -100,3 +100,16 @@ class TableState:
             # Remove from waitlist if they were waiting
             if pid in self.waitlist:
                 self.waitlist.remove(pid)
+
+    def remove_player(self, pid: str) -> None:
+        """Completely remove a player from the table."""
+        if pid in self.players:
+            # Remove from all tracking structures
+            self.players.pop(pid, None)
+            self.spectator_pids.discard(pid)
+            if pid in self.waitlist:
+                self.waitlist.remove(pid)
+
+    def is_empty(self) -> bool:
+        """Check if table has no players at all."""
+        return len(self.players) == 0
