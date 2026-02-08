@@ -27,7 +27,9 @@ A real-time multiplayer poker application built with FastAPI (Python) and React.
 ### Technical
 - Microservices architecture (lobby + game services)
 - Shared poker logic module
-- Comprehensive test coverage (201 tests)
+- Comprehensive test coverage (205+ tests: unit, integration, E2E)
+- **Deterministic deck shuffling** for reproducible testing
+- E2E browser automation with WebdriverIO
 - Docker support for easy deployment
 
 ## Architecture
@@ -250,7 +252,32 @@ cd poker-client
 npm test
 ```
 
-**Total: 201 tests, all passing ✅**
+**E2E Tests (WebdriverIO):**
+```bash
+# From project root
+npm install  # Install E2E test dependencies
+
+# Make sure all services are running first
+./dev-start.sh
+
+# Run E2E tests (headed mode - watch tests run)
+npm run test:e2e
+
+# Run in headless mode (CI/automated)
+HEADLESS=true npm run test:e2e
+
+# Run specific test file
+npm run test:e2e -- --spec=e2e/specs/basic-gameplay.e2e.js
+```
+
+**E2E test features:**
+- Real browser automation with Firefox
+- Tests complete gameplay flows (join, start hand, betting, showdown)
+- **Deterministic deck shuffling** - Uses seeded RNG for reproducible test scenarios
+- Test-only API endpoints for configuration and state verification
+- Headed mode by default for debugging, headless for CI
+
+**Total: 205+ tests (unit + integration + E2E) ✅**
 
 ### Building for Production
 

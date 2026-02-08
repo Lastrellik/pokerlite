@@ -2,7 +2,7 @@
 Card utility functions for poker.
 """
 import random
-from typing import List
+from typing import List, Optional
 from .constants import RANKS, SUITS
 
 
@@ -11,11 +11,27 @@ def new_deck() -> List[str]:
     return [r + s for r in RANKS for s in SUITS]
 
 
+def shuffle_deck_with_seed(seed: Optional[int] = None) -> List[str]:
+    """Create and shuffle a deck with optional seed for determinism.
+
+    Args:
+        seed: Random seed for reproducible shuffling. If None, uses system randomness.
+
+    Returns:
+        Shuffled deck of 52 cards.
+    """
+    deck = new_deck()
+    if seed is not None:
+        rng = random.Random(seed)
+        rng.shuffle(deck)
+    else:
+        random.shuffle(deck)
+    return deck
+
+
 def shuffle_deck() -> List[str]:
     """Create and shuffle a new deck."""
-    deck = new_deck()
-    random.shuffle(deck)
-    return deck
+    return shuffle_deck_with_seed(seed=None)
 
 
 def rank_value(rank: str) -> int:

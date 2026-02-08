@@ -91,7 +91,11 @@ def start_new_hand(table: TableState) -> None:
     table.total_contributions = {}
 
     # Create and shuffle deck
-    table.deck = shuffle_deck()
+    if table.use_deterministic_deck and table.deck_seed is not None:
+        from poker.card_utils import shuffle_deck_with_seed
+        table.deck = shuffle_deck_with_seed(table.deck_seed)
+    else:
+        table.deck = shuffle_deck()
 
     # Deal hole cards
     _deal_hole_cards(table, players)

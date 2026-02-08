@@ -48,6 +48,10 @@ class TableState:
     # Runout mode (all players all-in, dealing remaining streets with delays)
     runout_in_progress: bool = False
 
+    # Testing/determinism support
+    deck_seed: Optional[int] = None  # If set, use seeded shuffling
+    use_deterministic_deck: bool = False  # Enable for testing
+
     # Player management
     waitlist: list[str] = field(default_factory=list)  # PIDs in FIFO order
     spectator_pids: set[str] = field(default_factory=set)  # PIDs of spectators
