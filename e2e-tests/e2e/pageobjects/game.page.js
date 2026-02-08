@@ -18,7 +18,7 @@ class GamePage extends BasePage {
     get allInBtn() { return $('button*=All') }
 
     // Game info selectors
-    get pot() { return $('.pot-value') }
+    get pot() { return $('.pot-amount') }
     get board() { return $('.board') }
     get gameLog() { return $('.game-log') }
 
@@ -44,6 +44,23 @@ class GamePage extends BasePage {
     }
 
     /**
+     * Close all extra windows and switch back to the first window
+     * Handles window cleanup safely to avoid "no such window" errors
+     */
+    async closeExtraWindows() {
+        const handles = await browser.getWindowHandles()
+        // Close all windows except the first one
+        for (let i = handles.length - 1; i > 0; i--) {
+            await browser.switchToWindow(handles[i])
+            await browser.closeWindow()
+        }
+        // Switch back to the first window if it exists
+        if (handles.length > 0) {
+            await browser.switchToWindow(handles[0])
+        }
+    }
+
+    /**
      * Join the game as a player
      */
     async joinAsPlayer(playerName) {
@@ -51,8 +68,8 @@ class GamePage extends BasePage {
         await this.playerNameInput.setValue(playerName)
         await this.joinBtn.click()
 
-        // Wait for connection
-        await browser.pause(1000)
+        // Wait for connection by waiting for Leave button to appear
+        await this.leaveBtn.waitForDisplayed({ timeout: 5000 })
     }
 
     /**
@@ -61,7 +78,17 @@ class GamePage extends BasePage {
     async startHand() {
         await this.startHandBtn.waitForClickable({ timeout: 10000 })
         await this.startHandBtn.click()
-        await browser.pause(500)
+
+        // Wait for hand to actually start by waiting for pot to appear
+        await this.pot.waitForDisplayed({ timeout: 5000 })
+    }
+
+    /**
+     * Wait for Start Hand button to be available
+     * This means enough players have joined
+     */
+    async waitForStartHandButton() {
+        await this.startHandBtn.waitForClickable({ timeout: 10000 })
     }
 
     /**

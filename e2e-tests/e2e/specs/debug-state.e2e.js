@@ -108,7 +108,6 @@ describe('Debug State', () => {
         }
 
         // Close extra window
-        await browser.closeWindow()
-        await browser.switchToWindow(handles[0])
+        await GamePage.closeExtraWindows()
     })
 })

@@ -105,8 +105,7 @@ describe('Deterministic Hands', () => {
             await browser.pause(500)
 
             // Close extra window
-            await browser.closeWindow()
-            await browser.switchToWindow(handles[0])
+            await GamePage.closeExtraWindows()
         }
 
         // All runs should have identical boards and hole cards
@@ -144,8 +143,7 @@ describe('Deterministic Hands', () => {
 
             // Cleanup
             await GamePage.performAction('fold')
-            await browser.closeWindow()
-            await browser.switchToWindow(handles[0])
+            await GamePage.closeExtraWindows()
         }
 
         // Different seeds should produce different decks
@@ -222,13 +220,6 @@ describe('Deterministic Hands', () => {
     })
 
     afterEach(async () => {
-        const handles = await browser.getWindowHandles()
-        for (let i = handles.length - 1; i > 0; i--) {
-            await browser.switchToWindow(handles[i])
-            await browser.closeWindow()
-        }
-        if (handles.length > 0) {
-            await browser.switchToWindow(handles[0])
-        }
+        await GamePage.closeExtraWindows()
     })
 })

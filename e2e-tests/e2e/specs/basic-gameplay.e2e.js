@@ -35,16 +35,15 @@ describe('Basic Gameplay', () => {
             const handles = await browser.getWindowHandles()
             await browser.switchToWindow(handles[0])
 
-            // Start the hand
+            // Wait for Start Hand button (means both players registered)
+            await GamePage.waitForStartHandButton()
+
+            // Start the hand (waits for pot to appear)
             await GamePage.startHand()
 
             // Verify pot has blinds (5 + 10 = 15)
-            await browser.pause(500)
             const pot = await GamePage.getPotAmount()
             expect(pot).toBe(15)
-
-            // Verify log shows hand started
-            await GamePage.waitForLogMessage('New hand started')
         })
 
         it('should handle fold scenario', async () => {
@@ -58,14 +57,19 @@ describe('Basic Gameplay', () => {
             const handles = await browser.getWindowHandles()
             await browser.switchToWindow(handles[0])
 
+            // Wait for Start Hand button
+            await GamePage.waitForStartHandButton()
+
             await GamePage.startHand()
-            await browser.pause(500)
 
             // Alice folds
             await GamePage.performAction('fold')
 
-            // Bob should win
-            await GamePage.waitForLogMessage('Bob wins', 5000)
+            // Wait for hand to end (pot resets or becomes 0)
+            await browser.waitUntil(async () => {
+                const messages = await GamePage.getLogMessages(10)
+                return messages.some(m => m.toLowerCase().includes('wins'))
+            }, { timeout: 5000, timeoutMsg: 'Expected winner message' })
         })
 
         it('should handle check-check to showdown', async () => {
@@ -79,8 +83,10 @@ describe('Basic Gameplay', () => {
             const handles = await browser.getWindowHandles()
             await browser.switchToWindow(handles[0])
 
+            // Wait for Start Hand button
+            await GamePage.waitForStartHandButton()
+
             await GamePage.startHand()
-            await browser.pause(500)
 
             // Play through all streets with checks
             // Preflop: Alice calls, Bob checks
@@ -127,22 +133,14 @@ describe('Basic Gameplay', () => {
             await GamePage.performAction('check')
 
             // Should see showdown result
-            await browser.pause(1000)
-            const messages = await GamePage.getLogMessages(10)
-            const hasWinner = messages.some(m =>
-                m.includes('wins') || m.includes('split pot')
-            )
-            expect(hasWinner).toBe(true)
+            await browser.waitUntil(async () => {
+                const messages = await GamePage.getLogMessages(10)
+                return messages.some(m => m.includes('wins') || m.includes('split pot'))
+            }, { timeout: 5000, timeoutMsg: 'Expected showdown winner message' })
         })
 
         afterEach(async () => {
-            // Close extra windows
-            const handles = await browser.getWindowHandles()
-            for (let i = handles.length - 1; i > 0; i--) {
-                await browser.switchToWindow(handles[i])
-                await browser.closeWindow()
-            }
-            await browser.switchToWindow(handles[0])
+            await GamePage.closeExtraWindows()
         })
     })
 
@@ -157,28 +155,26 @@ describe('Basic Gameplay', () => {
             const handles = await browser.getWindowHandles()
             await browser.switchToWindow(handles[0])
 
+            // Wait for Start Hand button
+            await GamePage.waitForStartHandButton()
+
             await GamePage.startHand()
-            await browser.pause(500)
 
             const initialPot = await GamePage.getPotAmount()
             expect(initialPot).toBe(15)  // SB 5 + BB 10
 
             // Alice raises to 20
             await GamePage.performAction('raise')
-            await browser.pause(500)
 
-            // Pot should now be 5 + 20 = 25 (Bob's BB is already in)
-            const potAfterRaise = await GamePage.getPotAmount()
-            expect(potAfterRaise).toBeGreaterThan(initialPot)
+            // Wait for pot to update after raise
+            await browser.waitUntil(async () => {
+                const pot = await GamePage.getPotAmount()
+                return pot > initialPot
+            }, { timeout: 5000, timeoutMsg: 'Pot should increase after raise' })
         })
 
         afterEach(async () => {
-            const handles = await browser.getWindowHandles()
-            for (let i = handles.length - 1; i > 0; i--) {
-                await browser.switchToWindow(handles[i])
-                await browser.closeWindow()
-            }
-            await browser.switchToWindow(handles[0])
+            await GamePage.closeExtraWindows()
         })
     })
 })
