@@ -97,13 +97,27 @@ describe('ConnectionPanel Component', () => {
 
   it('calls connect on Enter key press', async () => {
     renderPanel()
-    
+
     const input = screen.getByPlaceholderText('Enter your name')
     await user.type(input, 'TestPlayer{Enter}')
 
     await waitFor(() => {
       expect(mockConnect).toHaveBeenCalledWith('TestPlayer', 'test-table-123')
     })
+  })
+
+  it('pre-fills name from localStorage but allows editing', async () => {
+    localStorage.setItem('playerName', 'SavedName')
+
+    renderPanel()
+
+    const input = screen.getByPlaceholderText('Enter your name')
+    expect(input).toHaveValue('SavedName')
+
+    // Can still edit it
+    await user.clear(input)
+    await user.type(input, 'NewName')
+    expect(input).toHaveValue('NewName')
   })
 })
 

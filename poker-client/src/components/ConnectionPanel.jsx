@@ -12,21 +12,11 @@ function ConnectionPanel() {
   const [playerName, setPlayerName] = useState(
     localStorage.getItem('playerName') || ''
   )
-  const [showNameInput, setShowNameInput] = useState(!connected && !playerName)
-
-  // Auto-connect if we have a name
-  useEffect(() => {
-    if (playerName && tableId && !connected) {
-      connect(playerName, tableId)
-      localStorage.setItem('playerName', playerName)
-    }
-  }, []) // Only on mount
 
   const handleConnect = () => {
     if (playerName && tableId) {
       connect(playerName, tableId)
       localStorage.setItem('playerName', playerName)
-      setShowNameInput(false)
     }
   }
 
@@ -35,7 +25,7 @@ function ConnectionPanel() {
     navigate('/')
   }
 
-  if (showNameInput && !connected) {
+  if (!connected) {
     return (
       <div className="connection-panel">
         <div className="connection-inputs">
