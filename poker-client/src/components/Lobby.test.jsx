@@ -61,7 +61,7 @@ describe('Lobby Component', () => {
     })
 
     renderLobby()
-    expect(screen.getByText('🎰 PokerLite Lobby')).toBeInTheDocument()
+    expect(screen.getByText('🃏 PokerLite Lobby')).toBeInTheDocument()
     expect(screen.getByText('+ Create Table')).toBeInTheDocument()
   })
 

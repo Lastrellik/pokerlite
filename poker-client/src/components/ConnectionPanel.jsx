@@ -31,7 +31,7 @@ function ConnectionPanel() {
   }
 
   const handleDisconnect = () => {
-    disconnect()
+    disconnect(tableId)
     navigate('/')
   }
 

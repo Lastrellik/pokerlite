@@ -28,10 +28,12 @@ export function PokerGameProvider({ children }) {
 
     ws.onopen = () => {
       console.log('WebSocket connected')
+      // Reuse pid from localStorage if available (for reconnections/duplicate tabs)
+      const savedPid = localStorage.getItem(`pid_${tableId}`)
       ws.send(JSON.stringify({
         type: 'join',
         name: playerName,
-        pid: null  // Always get a new player ID for each connection
+        pid: savedPid  // Reuse existing pid or null for new player
       }))
       setConnected(true)
       addLog(`Connected to table: ${tableId}`)
@@ -43,6 +45,8 @@ export function PokerGameProvider({ children }) {
 
         if (msg.type === 'welcome') {
           setMyPid(msg.pid)
+          // Save pid to localStorage for reconnections (keyed by table)
+          localStorage.setItem(`pid_${tableId}`, msg.pid)
           addLog(`Joined as ${playerName} (${msg.pid.substring(0, 8)})`)
         } else if (msg.type === 'state') {
           setGameState(msg.state)
@@ -68,10 +72,14 @@ export function PokerGameProvider({ children }) {
     }
   }, [addLog])
 
-  const disconnect = useCallback(() => {
+  const disconnect = useCallback((tableId) => {
     if (wsRef.current) {
       wsRef.current.close()
       wsRef.current = null
+    }
+    // Clear saved pid when explicitly disconnecting
+    if (tableId) {
+      localStorage.removeItem(`pid_${tableId}`)
     }
     setConnected(false)
   }, [])

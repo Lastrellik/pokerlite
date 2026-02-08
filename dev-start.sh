@@ -19,11 +19,11 @@ PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
 
 # Start services in background
 echo "Starting lobby service (port 8000)..."
-(cd "$PROJECT_ROOT/services/lobby" && .venv/bin/uvicorn app.main:app --reload --host 0.0.0.0 --port 8000) > /tmp/pokerlite-lobby.log 2>&1 &
+(cd "$PROJECT_ROOT/services/lobby" && .venv/bin/python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000) > /tmp/pokerlite-lobby.log 2>&1 &
 LOBBY_PID=$!
 
 echo "Starting game service (port 8001)..."
-(cd "$PROJECT_ROOT/services/game" && .venv/bin/uvicorn app.main:app --reload --host 0.0.0.0 --port 8001) > /tmp/pokerlite-game.log 2>&1 &
+(cd "$PROJECT_ROOT/services/game" && .venv/bin/python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8001) > /tmp/pokerlite-game.log 2>&1 &
 GAME_PID=$!
 
 echo "Starting frontend (port 5173)..."

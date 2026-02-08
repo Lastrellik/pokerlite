@@ -26,7 +26,7 @@ export default function Lobby() {
   return (
     <div className="lobby">
       <div className="lobby-header">
-        <h1>🎰 PokerLite Lobby</h1>
+        <h1>🃏 PokerLite Lobby</h1>
         <button onClick={() => setShowCreateModal(true)} className="btn-create">
           + Create Table
         </button>

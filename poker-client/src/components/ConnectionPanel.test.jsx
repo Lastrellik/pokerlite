@@ -154,7 +154,7 @@ describe('ConnectionPanel - Connected State', () => {
     const leaveButton = screen.getByText('Leave Table')
     await user.click(leaveButton)
 
-    expect(mockDisconnect).toHaveBeenCalled()
+    expect(mockDisconnect).toHaveBeenCalledWith('test-table-123')
     expect(mockNavigate).toHaveBeenCalledWith('/')
   })
 })
