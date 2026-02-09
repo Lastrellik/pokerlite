@@ -105,3 +105,43 @@ class TestIsEmpty:
         table = TableState(table_id="test")
         table.upsert_player("p1", "Alice", force_spectator=True)
         assert not table.is_empty()
+
+
+class TestHasNoConnectedPlayers:
+    """Test has_no_connected_players functionality."""
+
+    def test_empty_table_has_no_connected(self):
+        """Empty table has no connected players."""
+        table = TableState(table_id="test")
+        assert table.has_no_connected_players()
+
+    def test_connected_player_returns_false(self):
+        """Table with connected player should return False."""
+        table = TableState(table_id="test")
+        table.upsert_player("p1", "Alice")
+        assert not table.has_no_connected_players()
+
+    def test_disconnected_player_returns_true(self):
+        """Table with only disconnected players should return True."""
+        table = TableState(table_id="test")
+        table.upsert_player("p1", "Alice")
+        table.mark_disconnected("p1")
+        assert table.has_no_connected_players()
+
+    def test_mixed_connected_and_disconnected(self):
+        """Table with mix of connected/disconnected returns False if any connected."""
+        table = TableState(table_id="test")
+        table.upsert_player("p1", "Alice")
+        table.upsert_player("p2", "Bob")
+        table.mark_disconnected("p1")
+        # p2 still connected
+        assert not table.has_no_connected_players()
+
+    def test_all_disconnected_returns_true(self):
+        """All players disconnected should return True."""
+        table = TableState(table_id="test")
+        table.upsert_player("p1", "Alice")
+        table.upsert_player("p2", "Bob")
+        table.mark_disconnected("p1")
+        table.mark_disconnected("p2")
+        assert table.has_no_connected_players()

@@ -22,10 +22,10 @@ LOBBY_URL = os.getenv("LOBBY_URL", "http://localhost:8000")
 
 
 async def cleanup_empty_table(table_id: str) -> None:
-    """Delete table from both game and lobby services if it's empty."""
+    """Delete table from both game and lobby services if all players disconnected."""
     table = get_table(table_id)
 
-    if table.is_empty():
+    if table.has_no_connected_players():
         print(f"[CLEANUP] Table {table_id} is empty, deleting...")
 
         # Delete from game service
@@ -208,8 +208,8 @@ async def ws_endpoint(ws: WebSocket, table_id: str):
             if info_msg:
                 print(f"[WS] Disconnect handled: {info_msg}")
 
-            # Remove player completely from table
-            table.remove_player(pid)
+            # Mark player as disconnected (preserves their stack and data)
+            table.mark_disconnected(pid)
 
         # Broadcast disconnect info if applicable
         if info_msg:
@@ -221,5 +221,5 @@ async def ws_endpoint(ws: WebSocket, table_id: str):
 
         await broadcast_state(table)
 
-        # Check if table is now empty and clean up if so
+        # Check if all players are disconnected and clean up if so
         await cleanup_empty_table(table_id)

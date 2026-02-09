@@ -71,7 +71,7 @@ function PokerTable({ tableId }) {
     return gameState.players.filter(p => p.connected && p.stack > 0).length
   }, [gameState?.players])
 
-  // Track side pot warning - persist once it appears until hand ends
+  // Track side pot warning - use backend-calculated side pots
   const [sidePotsWarning, setSidePotsWarning] = useState(null)
 
   useEffect(() => {
@@ -81,45 +81,18 @@ function PokerTable({ tableId }) {
       return
     }
 
-    // Don't clear during showdown - keep showing the warning!
-    // Only skip setting NEW warnings during showdown (but keep existing one)
-    const isShowdown = gameState?.showdown && !gameState?.showdown?.runout
-
-    // Check if any non-folded players are all-in
-    const nonFoldedPlayers = gameState.players?.filter(p => !p.folded && p.connected) || []
-    const allInPlayers = nonFoldedPlayers.filter(p => p.stack === 0)
-
-    if (allInPlayers.length === 0) {
-      // No all-in players - clear warning if not in showdown
-      if (!isShowdown) {
-        setSidePotsWarning(null)
-      }
-      return
-    }
-
-    // Don't update if already showing and we're in final showdown
-    if (sidePotsWarning && isShowdown) return
-
-    // Side pots are forming - set the warning and keep it
-    const playersWithChips = nonFoldedPlayers.filter(p => p.stack > 0)
-    const allInNames = allInPlayers.map(p => p.name).join(', ')
-    const potAmount = gameState.pot || 0
-
-    if (playersWithChips.length === 0) {
+    // Use backend-calculated side pots if available
+    if (gameState?.current_side_pots && gameState.current_side_pots.length > 0) {
       setSidePotsWarning({
-        message: `All-in showdown`,
-        details: `${allInNames} - Pot: $${potAmount}`,
-        count: allInPlayers.length
+        message: gameState.current_side_pots.length > 1 ? 'Side Pots Forming' : 'Main Pot',
+        pots: gameState.current_side_pots,
+        totalPot: gameState.pot || 0
       })
     } else {
-      const activeNames = playersWithChips.map(p => p.name).join(', ')
-      setSidePotsWarning({
-        message: `Side pots forming`,
-        details: `All-in: ${allInNames} • Active: ${activeNames} • Pot: $${potAmount}`,
-        count: allInPlayers.length
-      })
+      // No side pots - clear warning
+      setSidePotsWarning(null)
     }
-  }, [gameState])
+  }, [gameState?.hand_in_progress, gameState?.current_side_pots, gameState?.pot])
 
   // Helper to get showdown data for a player
   const getShowdownData = useCallback((pid) => {
@@ -417,13 +390,23 @@ function PokerTable({ tableId }) {
         </div>
 
         {/* Side pot warning - positioned on the side */}
-        {sidePotsWarning && (
+        {sidePotsWarning && sidePotsWarning.pots && (
           <div className="side-pot-warning-container">
             <div className="side-pot-warning">
               <div className="warning-title">⚠️ {sidePotsWarning.message}</div>
-              {sidePotsWarning.details && (
-                <div className="warning-details">{sidePotsWarning.details}</div>
-              )}
+              <div className="warning-details" style={{ marginTop: '8px' }}>
+                {sidePotsWarning.pots.map((pot, idx) => (
+                  <div key={idx} style={{ marginBottom: '6px', paddingBottom: '6px', borderBottom: idx < sidePotsWarning.pots.length - 1 ? '1px solid rgba(255, 165, 0, 0.3)' : 'none' }}>
+                    <div style={{ fontWeight: '700', color: '#ffa500' }}>{pot.type}: ${pot.amount}</div>
+                    <div style={{ fontSize: '10px', opacity: '0.8', marginTop: '2px' }}>
+                      Eligible: {pot.eligible_players.join(', ')}
+                    </div>
+                  </div>
+                ))}
+                <div style={{ marginTop: '8px', paddingTop: '6px', borderTop: '1px solid rgba(255, 165, 0, 0.5)', fontWeight: '700' }}>
+                  Total Pot: ${sidePotsWarning.totalPot}
+                </div>
+              </div>
             </div>
           </div>
         )}

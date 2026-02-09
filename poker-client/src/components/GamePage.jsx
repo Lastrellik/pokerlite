@@ -1,7 +1,7 @@
 /**
  * GamePage - wrapper for the poker table that gets tableId from route params.
  */
-import { useParams } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
 import { PokerGameProvider } from '../hooks/usePokerGame.jsx'
 import PokerTable from './PokerTable'
 import ConnectionPanel from './ConnectionPanel'
@@ -14,7 +14,9 @@ export default function GamePage() {
     <PokerGameProvider>
       <div className="game-page">
         <header className="game-header">
-          <h1>♠️ PokerLite ♥️</h1>
+          <Link to="/" style={{ textDecoration: 'none', color: 'inherit' }}>
+            <h1 style={{ cursor: 'pointer' }}>♠️ PokerLite ♥️</h1>
+          </Link>
           <div className="table-id">Table: {tableId}</div>
           <ConnectionPanel />
         </header>

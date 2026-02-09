@@ -113,3 +113,7 @@ class TableState:
     def is_empty(self) -> bool:
         """Check if table has no players at all."""
         return len(self.players) == 0
+
+    def has_no_connected_players(self) -> bool:
+        """Check if table has no connected players (all disconnected)."""
+        return all(not p.connected for p in self.players.values()) if self.players else True

@@ -282,6 +282,53 @@ def advance_turn(table: TableState) -> None:
     _set_turn_deadline(table)
 
 
+def calculate_side_pots(table: TableState, player_ids: list[str]) -> list[dict]:
+    """
+    Calculate side pots based on total contributions.
+    Returns list of side pots with amounts and eligible players.
+    Can be called during hand or at showdown.
+    """
+    if not player_ids:
+        return []
+
+    # Sort players by their total bet amounts
+    player_bets_list = [(pid, table.total_contributions.get(pid, 0)) for pid in player_ids]
+
+    # Check if all bets are equal or zero (no side pots needed)
+    bet_amounts = [bet for _, bet in player_bets_list]
+    all_equal_bets = len(set(bet_amounts)) <= 1
+
+    if all_equal_bets:
+        # Simple case: everyone contributed equally, single pot for all
+        return [{
+            'amount': table.pot,
+            'eligible_players': set(player_ids)
+        }]
+    else:
+        # Complex case: different bet amounts, need side pots
+        player_bets_list.sort(key=lambda x: x[1])
+
+        # Build side pots
+        side_pots = []
+        remaining_players = set(player_ids)
+        prev_bet_level = 0
+
+        for i, (pid, bet_amount) in enumerate(player_bets_list):
+            if bet_amount > prev_bet_level and remaining_players:
+                # Create a pot for this bet level
+                pot_amount = (bet_amount - prev_bet_level) * len(remaining_players)
+                side_pots.append({
+                    'amount': pot_amount,
+                    'eligible_players': remaining_players.copy()
+                })
+                prev_bet_level = bet_amount
+
+            # Remove this player from remaining (they're all-in at this level)
+            remaining_players.discard(pid)
+
+        return side_pots
+
+
 def run_showdown(table: TableState) -> str:
     """
     Evaluates all active players' hands, determines winner(s), and awards pot.
@@ -315,41 +362,8 @@ def run_showdown(table: TableState) -> str:
         cards = table.hole_cards.get(pid, []) + table.board
         hand_evals[pid] = evaluate_hand_with_cards(cards)
 
-    # Create side pots based on total contributions throughout the hand
-    # Sort players by their total bet amounts
-    player_bets_list = [(pid, table.total_contributions.get(pid, 0)) for pid in active]
-
-    # Check if all bets are equal or zero (no side pots needed)
-    bet_amounts = [bet for _, bet in player_bets_list]
-    all_equal_bets = len(set(bet_amounts)) <= 1
-
-    if all_equal_bets:
-        # Simple case: everyone contributed equally, single pot for all
-        side_pots = [{
-            'amount': table.pot,
-            'eligible_players': set(active)
-        }]
-    else:
-        # Complex case: different bet amounts, need side pots
-        player_bets_list.sort(key=lambda x: x[1])
-
-        # Build side pots
-        side_pots = []
-        remaining_players = set(active)
-        prev_bet_level = 0
-
-        for i, (pid, bet_amount) in enumerate(player_bets_list):
-            if bet_amount > prev_bet_level and remaining_players:
-                # Create a pot for this bet level
-                pot_amount = (bet_amount - prev_bet_level) * len(remaining_players)
-                side_pots.append({
-                    'amount': pot_amount,
-                    'eligible_players': remaining_players.copy()
-                })
-                prev_bet_level = bet_amount
-
-            # Remove this player from remaining (they're all-in at this level)
-            remaining_players.discard(pid)
+    # Calculate side pots using the new helper function
+    side_pots = calculate_side_pots(table, active)
 
     # Award each side pot to the best hand among eligible players
     total_pot = table.pot
@@ -467,22 +481,29 @@ def run_showdown(table: TableState) -> str:
             # Single pot
             return f"{winner.name} wins ${total_pot} (${net_gain} profit) with {winning_hand_name}"
     else:
-        # Multiple winners (split pot scenario)
+        # Multiple winners (could be split pot or multiple side pots with different winners)
         winner_details = []
         for pid in winners:
             won_amt = pot_winners[pid]
             original_bet = table.total_contributions.get(pid, 0)
             profit = won_amt - original_bet
-            winner_details.append(f"{table.players[pid].name} (${won_amt}, +${profit})")
+            profit_str = f"+${profit}" if profit >= 0 else f"-${abs(profit)}"
+            winner_details.append(f"{table.players[pid].name} (${won_amt}, {profit_str})")
 
-        result = f"Split pot: {', '.join(winner_details)} with {winning_hand_name}"
-        # Add side pot breakdown if applicable
-        if len(side_pots) > 1 and side_pot_breakdown:
+        # Check if this is a true split (multiple winners of same pot) or different pots
+        if len(side_pots) > 1:
+            # Multiple pots - don't call it "split pot" unless they actually split a pot
+            result = f"Pots won: {', '.join(winner_details)}"
+            # Add side pot breakdown
             for pot_info in side_pot_breakdown:
                 pot_type = pot_info['type']
                 pot_amt = pot_info['amount']
                 pot_winner_names = ', '.join(pot_info['winners'])
                 result += f"\n  • {pot_type}: ${pot_amt} → {pot_winner_names}"
+        else:
+            # Single pot split among multiple players
+            result = f"Split pot: {', '.join(winner_details)} with {winning_hand_name}"
+
         return result
 
 

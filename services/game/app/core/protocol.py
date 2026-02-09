@@ -1,8 +1,9 @@
 import json
 from typing import Optional
 from .models import TableState, PlayerRole
-from .player_utils import eligible_players
+from .player_utils import eligible_players, active_pids
 from .waitlist import get_waitlist_position
+from .game_flow import calculate_side_pots
 
 def public_state(table: TableState, viewer_pid: Optional[str] = None) -> dict:
     # Get viewer's role
@@ -54,6 +55,30 @@ def public_state(table: TableState, viewer_pid: Optional[str] = None) -> dict:
         if pid in table.players and table.players[pid].connected
     ]
 
+    # Calculate current side pots if hand is in progress
+    current_side_pots = None
+    if table.hand_in_progress:
+        active = active_pids(table)
+        if len(active) > 1:
+            # Only show side pots if someone is all-in (stack == 0) AND different contribution levels
+            active_players = [table.players[pid] for pid in active if pid in table.players]
+            has_all_in = any(p.stack == 0 for p in active_players)
+
+            if has_all_in:
+                contributions = [table.total_contributions.get(pid, 0) for pid in active]
+                if len(set(contributions)) > 1:  # Different contribution amounts
+                    pots = calculate_side_pots(table, active)
+                    # Format for frontend
+                    current_side_pots = []
+                    for idx, pot in enumerate(pots):
+                        pot_type = "Main Pot" if idx == 0 else f"Side Pot {idx}"
+                        eligible_names = [table.players[pid].name for pid in pot['eligible_players'] if pid in table.players]
+                        current_side_pots.append({
+                            "type": pot_type,
+                            "amount": pot['amount'],
+                            "eligible_players": eligible_names
+                        })
+
     return {
         "table_id": table.table_id,
 
@@ -92,6 +117,9 @@ def public_state(table: TableState, viewer_pid: Optional[str] = None) -> dict:
 
         # last action for UI animations
         "last_action": table.last_action,
+
+        # Current side pots (during hand, if applicable)
+        "current_side_pots": current_side_pots,
 
         # Player role and management info
         "my_role": viewer_role,
