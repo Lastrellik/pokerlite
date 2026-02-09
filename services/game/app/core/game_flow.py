@@ -509,23 +509,16 @@ def run_showdown(table: TableState) -> str:
 
 def _end_hand(table: TableState) -> None:
     """Clean up hand state and handle player transitions."""
-    from .models import PlayerRole
-
     table.hand_in_progress = False
     table.current_turn_pid = None
     table.pot = 0
-    table.board = []
-    table.hole_cards = {}
+    # Don't clear board and hole_cards yet - showdown data needs them for display
+    # They'll be cleared when the next hand starts
     table.player_bets = {}
     # Note: total_contributions is NOT cleared here because it's used for profit
     # calculation in the result message after this function returns
     table.folded_pids = set()
     table.players_acted = set()
 
-    # Convert busted players (stack=0) to spectators immediately
-    # This prevents the table from getting stuck when a player busts and disconnects
-    for player in list(table.players.values()):
-        if player.role == PlayerRole.SEATED and player.stack == 0:
-            player.role = PlayerRole.SPECTATOR
-            player.seat = 0
-            table.spectator_pids.add(player.pid)
+    # Note: Busted player conversion moved to start_new_hand
+    # This allows showdown data to be displayed properly before cleanup

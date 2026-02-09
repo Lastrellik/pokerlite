@@ -136,6 +136,10 @@ async def _handle_action(table: TableState, pid: str, msg: Dict[str, Any]) -> Op
             process_raise(table, pid, all_in_amount)
             action_msg = f"{player.name} goes all-in for ${all_in_amount}"
 
+        # Debug: log total contribution after all-in
+        total_contrib = table.total_contributions.get(pid, 0)
+        print(f"[ALL-IN] {player.name} all-in for ${all_in_amount}, total contribution: ${total_contrib}, pot: ${table.pot}")
+
     # Check if betting round is complete
     active = active_pids(table)
     if is_betting_complete(table, active):

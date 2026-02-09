@@ -16,8 +16,14 @@ A real-time multiplayer poker application built with FastAPI (Python) and React.
 - WebSocket-based communication for instant updates
 - Clean, modern React UI with elliptical table layout
 - Up to 8 players per table with automatic seat assignment
-- **Side pot handling** - Correctly manages multiple side pots with different stack sizes
-- **Detailed game log** - Shows all actions, street changes, and side pot breakdowns
+- **Advanced side pot system**:
+  - Real-time side pot breakdown display during hands
+  - Correctly handles multiple side pots with different stack sizes
+  - Shows pot amounts and eligible players for each pot
+  - Detailed side pot breakdown in showdown results
+- **Stack persistence** - Players keep their chip count when disconnecting/reconnecting
+- **Detailed game log** - Shows all actions, street changes, and pot distributions
+- **Auto-delete empty tables** - Tables clean up automatically when all players leave
 - Spectator mode for watching games in progress
 - Waitlist system with automatic promotion when seats open
 - Turn timeout with auto-fold/check
@@ -27,10 +33,11 @@ A real-time multiplayer poker application built with FastAPI (Python) and React.
 ### Technical
 - Microservices architecture (lobby + game services)
 - Shared poker logic module
-- Comprehensive test coverage (205+ tests: unit, integration, E2E)
+- Comprehensive test coverage (218 tests: unit, integration, E2E)
 - **Deterministic deck shuffling** for reproducible testing
 - E2E browser automation with WebdriverIO
 - Docker support for easy deployment
+- Debug logging for side pot calculations
 
 ## Architecture
 
@@ -216,7 +223,7 @@ pokerlite/
 │       │   ├── core/      # Game logic, poker rules
 │       │   ├── routes/    # WebSocket routes
 │       │   └── main.py
-│       ├── tests/         # 192 tests
+│       ├── tests/         # 218 tests
 │       └── Dockerfile
 ├── poker-client/          # React frontend
 │   ├── src/
@@ -239,7 +246,7 @@ pokerlite/
 
 ### Running Tests
 
-**Game Service (192 tests):**
+**Game Service (218 tests):**
 ```bash
 cd services/game
 source .venv/bin/activate
@@ -287,7 +294,7 @@ npm run test:e2e -- --spec=e2e/specs/basic-gameplay.e2e.js
 - Test-only API endpoints for configuration and state verification
 - Headed mode by default for debugging, headless for CI
 
-**Total: 205+ tests (unit + integration + E2E) ✅**
+**Total: 218+ tests (unit + integration + E2E) ✅**
 
 ### Building for Production
 

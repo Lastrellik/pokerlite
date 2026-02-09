@@ -81,7 +81,7 @@ function PokerTable({ tableId }) {
       return
     }
 
-    // Use backend-calculated side pots if available
+    // Always trust the backend - if it sends side pots, show them; if not, clear them
     if (gameState?.current_side_pots && gameState.current_side_pots.length > 0) {
       setSidePotsWarning({
         message: gameState.current_side_pots.length > 1 ? 'Side Pots Forming' : 'Main Pot',
@@ -89,7 +89,8 @@ function PokerTable({ tableId }) {
         totalPot: gameState.pot || 0
       })
     } else {
-      // No side pots - clear warning
+      // Backend says no side pots (contributions are equal) → clear warning
+      // This happens when both players match their all-in amounts
       setSidePotsWarning(null)
     }
   }, [gameState?.hand_in_progress, gameState?.current_side_pots, gameState?.pot])

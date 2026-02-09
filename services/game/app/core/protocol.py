@@ -66,6 +66,10 @@ def public_state(table: TableState, viewer_pid: Optional[str] = None) -> dict:
 
             if has_all_in:
                 contributions = [table.total_contributions.get(pid, 0) for pid in active]
+                # Debug logging
+                contribution_details = {table.players[pid].name: table.total_contributions.get(pid, 0) for pid in active if pid in table.players}
+                print(f"[SIDE_POTS] Contributions: {contribution_details}, Pot: ${table.pot}")
+
                 if len(set(contributions)) > 1:  # Different contribution amounts
                     pots = calculate_side_pots(table, active)
                     # Format for frontend
@@ -78,6 +82,9 @@ def public_state(table: TableState, viewer_pid: Optional[str] = None) -> dict:
                             "amount": pot['amount'],
                             "eligible_players": eligible_names
                         })
+                    print(f"[SIDE_POTS] Calculated {len(pots)} pots: {current_side_pots}")
+                else:
+                    print(f"[SIDE_POTS] Equal contributions - no side pots needed")
 
     return {
         "table_id": table.table_id,
@@ -97,6 +104,7 @@ def public_state(table: TableState, viewer_pid: Optional[str] = None) -> dict:
         ],
 
         "hand_in_progress": table.hand_in_progress,
+        "runout_in_progress": table.runout_in_progress,
         "dealer_seat": table.dealer_seat,
         "sb_pid": sb_pid,
         "bb_pid": bb_pid,
