@@ -152,7 +152,8 @@ async def ws_endpoint(ws: WebSocket, table_id: str):
     try:
         first = await ws.receive_text()
         hello = json.loads(first)
-    except Exception:
+    except Exception as e:
+        print(f"[WS] Error receiving/parsing join message: {e}")
         await ws.close()
         return
 
@@ -177,6 +178,7 @@ async def ws_endpoint(ws: WebSocket, table_id: str):
             initial_stack = stack
             print(f"[AUTH] Authenticated user {name} (ID: {user_id}) with stack: {stack}")
         else:
+            print(f"[AUTH] Token validation failed, closing connection")
             await ws.send_text(json.dumps({"type": "error", "message": "Invalid authentication token"}))
             await ws.close()
             return

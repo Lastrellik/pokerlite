@@ -2,6 +2,27 @@ import { createContext, useContext, useState, useEffect, useCallback, useRef } f
 
 const PokerGameContext = createContext()
 
+// Helper function to check if JWT token is expired
+function isTokenExpired(token) {
+  if (!token) return true
+
+  try {
+    // Decode JWT payload (middle part of the token)
+    const payload = JSON.parse(atob(token.split('.')[1]))
+
+    // Check if token has expiration and if it's expired
+    if (payload.exp) {
+      const now = Math.floor(Date.now() / 1000)
+      return payload.exp < now
+    }
+
+    return false
+  } catch (e) {
+    console.error('Failed to decode token:', e)
+    return true // Treat invalid tokens as expired
+  }
+}
+
 export function PokerGameProvider({ children }) {
   const [connected, setConnected] = useState(false)
   const [myPid, setMyPid] = useState(null)
@@ -34,8 +55,18 @@ export function PokerGameProvider({ children }) {
         name: playerName
       }
 
-      // Add token if authenticated
+      // Add token if authenticated and not expired
       if (token) {
+        if (isTokenExpired(token)) {
+          console.log('Token expired, clearing credentials')
+          localStorage.removeItem('auth_token')
+          localStorage.removeItem('username')
+          localStorage.removeItem('user_id')
+          localStorage.removeItem('avatar_id')
+          addLog('❌ Session expired - please log in again')
+          ws.close()
+          return
+        }
         joinMessage.token = token
         console.log('Connecting with authentication token')
       } else {
@@ -81,6 +112,21 @@ export function PokerGameProvider({ children }) {
           // Check if this is a win/loss message
           if (msg.message.toLowerCase().includes('wins') || msg.message.toLowerCase().includes('split pot')) {
             setHandResult(msg.message)
+          }
+        } else if (msg.type === 'error') {
+          // Handle server errors (e.g., auth failure)
+          addLog(`❌ Error: ${msg.message}`)
+
+          // If it's an auth error, clear the stored token
+          if (msg.message.toLowerCase().includes('authentication') ||
+              msg.message.toLowerCase().includes('token')) {
+            console.log('Authentication failed, clearing stored credentials')
+            localStorage.removeItem('auth_token')
+            localStorage.removeItem('username')
+            localStorage.removeItem('user_id')
+            localStorage.removeItem('avatar_id')
+            // Close connection so user can log in again
+            ws.close()
           }
         }
       } catch (e) {
