@@ -362,6 +362,15 @@ def run_showdown(table: TableState) -> str:
         cards = table.hole_cards.get(pid, []) + table.board
         hand_evals[pid] = evaluate_hand_with_cards(cards)
 
+    # Debug: Log hole cards and evaluations
+    print(f"[SHOWDOWN] Board: {' '.join(table.board)}")
+    for pid in active:
+        player_name = table.players[pid].name
+        hole = table.hole_cards.get(pid, [])
+        rank, tiebreakers, best_5 = hand_evals[pid]
+        hand_str = hand_name((rank, tiebreakers))
+        print(f"[SHOWDOWN] {player_name}: hole={hole}, hand={hand_str}, best_5={best_5}")
+
     # Calculate side pots using the new helper function
     side_pots = calculate_side_pots(table, active)
 
@@ -373,6 +382,10 @@ def run_showdown(table: TableState) -> str:
 
     for pot_idx, pot in enumerate(side_pots):
         eligible = list(pot['eligible_players'])
+        pot_type = "Main Pot" if pot_idx == 0 else f"Side Pot {pot_idx}"
+
+        # Debug: Log pot details at showdown
+        print(f"[SHOWDOWN] {pot_type}: ${pot['amount']}, eligible={[table.players[p].name for p in eligible]}")
 
         # Find best hand among eligible players
         best_hand = None
@@ -390,6 +403,8 @@ def run_showdown(table: TableState) -> str:
                     pot_winners_list = [pid]
                 elif result == 0:
                     pot_winners_list.append(pid)
+
+        print(f"[SHOWDOWN] {pot_type} winner(s): {[table.players[p].name for p in pot_winners_list]}")
 
         # Split pot among winners
         pot_share = pot['amount'] // len(pot_winners_list)
