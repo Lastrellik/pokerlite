@@ -520,5 +520,17 @@ def _end_hand(table: TableState) -> None:
     table.folded_pids = set()
     table.players_acted = set()
 
+    # Persist stack changes to database for authenticated players
+    if hasattr(table, 'user_ids'):
+        from .auth import update_user_stack
+        for pid, user_id in table.user_ids.items():
+            if pid in table.players:
+                player = table.players[pid]
+                success = update_user_stack(user_id, player.stack)
+                if success:
+                    print(f"[DB] Updated stack for user {user_id} ({player.name}): {player.stack} chips")
+                else:
+                    print(f"[DB] Failed to update stack for user {user_id}")
+
     # Note: Busted player conversion moved to start_new_hand
     # This allows showdown data to be displayed properly before cleanup

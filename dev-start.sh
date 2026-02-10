@@ -17,6 +17,11 @@ fi
 # Get absolute path to project root
 PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
 
+# Load environment variables
+if [ -f "$PROJECT_ROOT/.env" ]; then
+    export $(cat "$PROJECT_ROOT/.env" | grep -v '^#' | xargs)
+fi
+
 # Start services in background
 echo "Starting lobby service (port 8000)..."
 (cd "$PROJECT_ROOT/services/lobby" && .venv/bin/python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000) > /tmp/pokerlite-lobby.log 2>&1 &

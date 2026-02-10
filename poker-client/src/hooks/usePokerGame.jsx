@@ -14,7 +14,7 @@ export function PokerGameProvider({ children }) {
     setLogs(prev => [...prev.slice(-50), { time: new Date().toLocaleTimeString(), message }])
   }, [])
 
-  const connect = useCallback((playerName, tableId) => {
+  const connect = useCallback((playerName, tableId, token = null) => {
     if (wsRef.current) {
       wsRef.current.close()
     }
@@ -28,27 +28,39 @@ export function PokerGameProvider({ children }) {
 
     ws.onopen = () => {
       console.log('WebSocket connected')
-      // Only reuse pid if the player name matches (for reconnections)
-      const savedData = sessionStorage.getItem(`player_${tableId}`)
-      let savedPid = null
-      if (savedData) {
-        try {
-          const { name, pid } = JSON.parse(savedData)
-          // Only reuse pid if same player name
-          if (name === playerName) {
-            savedPid = pid
+
+      const joinMessage = {
+        type: 'join',
+        name: playerName
+      }
+
+      // Add token if authenticated
+      if (token) {
+        joinMessage.token = token
+        console.log('Connecting with authentication token')
+      } else {
+        // Guest mode - only reuse pid if the player name matches (for reconnections)
+        const savedData = sessionStorage.getItem(`player_${tableId}`)
+        let savedPid = null
+        if (savedData) {
+          try {
+            const { name, pid } = JSON.parse(savedData)
+            // Only reuse pid if same player name
+            if (name === playerName) {
+              savedPid = pid
+            }
+          } catch (e) {
+            // Invalid saved data, ignore
           }
-        } catch (e) {
-          // Invalid saved data, ignore
+        }
+        if (savedPid) {
+          joinMessage.pid = savedPid
         }
       }
-      ws.send(JSON.stringify({
-        type: 'join',
-        name: playerName,
-        pid: savedPid  // Reuse existing pid only if same name, or null for new player
-      }))
+
+      ws.send(JSON.stringify(joinMessage))
       setConnected(true)
-      addLog(`Connected to table: ${tableId}`)
+      addLog(`Connected to table: ${tableId}${token ? ' (authenticated)' : ' (guest)'}`)
     }
 
     ws.onmessage = (event) => {
@@ -57,8 +69,10 @@ export function PokerGameProvider({ children }) {
 
         if (msg.type === 'welcome') {
           setMyPid(msg.pid)
-          // Save both name and pid so we only reuse pid if same player reconnects
-          sessionStorage.setItem(`player_${tableId}`, JSON.stringify({ name: playerName, pid: msg.pid }))
+          // Save both name and pid so we only reuse pid if same player reconnects (guest mode only)
+          if (!token) {
+            sessionStorage.setItem(`player_${tableId}`, JSON.stringify({ name: playerName, pid: msg.pid }))
+          }
           addLog(`Joined as ${playerName} (${msg.pid.substring(0, 8)})`)
         } else if (msg.type === 'state') {
           setGameState(msg.state)

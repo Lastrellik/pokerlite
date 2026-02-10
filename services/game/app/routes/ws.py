@@ -12,6 +12,7 @@ from ..core.game_flow import check_turn_timeout
 from ..core.player_utils import active_pids
 from ..core.betting import is_betting_complete
 from ..core.game_flow import advance_turn, advance_street, run_showdown
+from ..core.auth import validate_token_and_load_user
 
 router = APIRouter()
 
@@ -24,6 +25,10 @@ LOBBY_URL = os.getenv("LOBBY_URL", "http://localhost:8000")
 async def cleanup_empty_table(table_id: str) -> None:
     """Delete table from both game and lobby services if all players disconnected."""
     table = get_table(table_id)
+
+    # Debug: show connected players
+    connected_players = [p.name for p in table.players.values() if p.connected]
+    print(f"[CLEANUP] Table {table_id} has {len(connected_players)} connected players: {connected_players}")
 
     if table.has_no_connected_players():
         print(f"[CLEANUP] Table {table_id} is empty, deleting...")
@@ -156,8 +161,30 @@ async def ws_endpoint(ws: WebSocket, table_id: str):
         await ws.close()
         return
 
-    name = (hello.get("name") or "player")[:24]
-    pid = hello.get("pid") or secrets.token_hex(8)
+    # Check for authentication token
+    token = hello.get("token")
+    user_id = None
+    initial_stack = 1000  # Default for unauthenticated players
+
+    if token:
+        # Validate token and load user
+        user_data = validate_token_and_load_user(token)
+        if user_data:
+            user, stack = user_data
+            name = user.username
+            pid = f"user_{user.id}"  # Use consistent PID based on user ID
+            user_id = user.id
+            initial_stack = stack
+            print(f"[AUTH] Authenticated user {name} (ID: {user_id}) with stack: {stack}")
+        else:
+            await ws.send_text(json.dumps({"type": "error", "message": "Invalid authentication token"}))
+            await ws.close()
+            return
+    else:
+        # Guest player (no auth)
+        name = (hello.get("name") or "guest")[:24]
+        pid = hello.get("pid") or secrets.token_hex(8)
+        print(f"[WS] Guest player {name} connecting (no auth)")
 
     async with table.lock:
         # Check if player is already connected
@@ -169,9 +196,16 @@ async def ws_endpoint(ws: WebSocket, table_id: str):
             except Exception as e:
                 print(f"[WS] Error closing old connection: {e}")
 
-        table.upsert_player(pid=pid, name=name)
+        table.upsert_player(pid=pid, name=name, stack=initial_stack)
         table.connections[pid] = ws
-        print(f"[WS] Player {pid} ({name}) connected to table {table_id}")
+
+        # Store user_id in player metadata for later stack updates
+        if user_id:
+            if not hasattr(table, 'user_ids'):
+                table.user_ids = {}
+            table.user_ids[pid] = user_id
+
+        print(f"[WS] Player {pid} ({name}) connected to table {table_id} with {initial_stack} chips")
 
     # Start timeout checker if not running
     if table_id not in _timeout_tasks or _timeout_tasks[table_id].done():

@@ -4,18 +4,18 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Copy shared module first
-COPY ../shared /app/shared
+# Copy shared module first (from parent context)
+COPY services/shared /app/shared
 
 # Install shared module
 RUN pip install --no-cache-dir -e /app/shared
 
 # Copy lobby service requirements
-COPY requirements.txt ./
+COPY services/lobby/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy lobby service code
-COPY app ./app
+COPY services/lobby/app ./app
 
 # Expose port
 EXPOSE 8000

@@ -1,10 +1,8 @@
-version: '3.8'
-
 services:
   lobby:
     build:
-      context: ./services/lobby
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: services/lobby/Dockerfile
     ports:
       - "8000:8000"
     environment:
@@ -12,7 +10,10 @@ services:
       - PORT=8000
       - CORS_ORIGINS=http://localhost:5173,http://localhost:3000
       - GAME_WS_URL=ws://localhost:8001
+      - DATABASE_URL=${DATABASE_URL}
     restart: unless-stopped
+    depends_on:
+      - postgres
     networks:
       - pokerlite-network
 
@@ -26,26 +27,33 @@ services:
       - HOST=0.0.0.0
       - PORT=8001
       - CORS_ORIGINS=http://localhost:5173,http://localhost:3000
+      - DATABASE_URL=${DATABASE_URL}
     restart: unless-stopped
+    depends_on:
+      - postgres
     networks:
       - pokerlite-network
 
   # Frontend is run separately with npm run dev for development
   # For production, build frontend and serve from one of the backend services
 
-  # Uncomment when ready for PostgreSQL (lobby persistence):
-  # postgres:
-  #   image: postgres:15-alpine
-  #   environment:
-  #     - POSTGRES_USER=pokerlite
-  #     - POSTGRES_PASSWORD=pokerlite
-  #     - POSTGRES_DB=pokerlite
-  #   volumes:
-  #     - postgres_data:/var/lib/postgresql/data
-  #   ports:
-  #     - "5432:5432"
-  #   networks:
-  #     - pokerlite-network
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-pokerlite}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-devpassword}
+      - POSTGRES_DB=${POSTGRES_DB:-pokerlite}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - pokerlite-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-pokerlite}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   # Uncomment when ready for Redis (game state coordination):
   # redis:
@@ -61,6 +69,5 @@ networks:
   pokerlite-network:
     driver: bridge
 
-# volumes:
-#   postgres_data:
-#   redis_data:
+volumes:
+  postgres_data:

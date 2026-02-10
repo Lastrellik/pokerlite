@@ -57,15 +57,22 @@ class TableState:
     spectator_pids: set[str] = field(default_factory=set)  # PIDs of spectators
 
 
-    def upsert_player(self, pid: str, name: str, force_spectator: bool = False) -> Player:
+    def upsert_player(self, pid: str, name: str, force_spectator: bool = False, stack: int = None) -> Player:
         from poker.constants import DEFAULT_STARTING_STACK
 
         if pid in self.players:
-            # Reconnecting player - keep their role
+            # Reconnecting player - keep their role and existing stack
             p = self.players[pid]
             p.connected = True
             p.name = name
+            # Update stack if provided (for authenticated players)
+            if stack is not None and p.role == PlayerRole.SPECTATOR:
+                # Only update stack if they're rejoining and were spectator
+                p.stack = stack
             return p
+
+        # Determine starting stack
+        starting_stack = stack if stack is not None else DEFAULT_STARTING_STACK
 
         # New player - determine role
         seated_count = sum(
@@ -87,7 +94,7 @@ class TableState:
             while seat in used_seats:
                 seat += 1
             player = Player(
-                pid=pid, name=name, seat=seat, stack=DEFAULT_STARTING_STACK,
+                pid=pid, name=name, seat=seat, stack=starting_stack,
                 role=PlayerRole.SEATED, connected=True
             )
 
