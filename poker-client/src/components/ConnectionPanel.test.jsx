@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { BrowserRouter } from 'react-router-dom'
@@ -9,10 +9,16 @@ const mockConnect = vi.fn()
 const mockDisconnect = vi.fn()
 const mockNavigate = vi.fn()
 
+// Create a mutable mock state that we can change per test
+let mockGameState = {
+  connected: false,
+  myPid: null,
+}
+
 vi.mock('../hooks/usePokerGame.jsx', () => ({
   usePokerGame: () => ({
-    connected: false,
-    myPid: null,
+    connected: mockGameState.connected,
+    myPid: mockGameState.myPid,
     connect: mockConnect,
     disconnect: mockDisconnect,
   }),
@@ -33,6 +39,9 @@ describe('ConnectionPanel Component', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     sessionStorage.clear()
+    // Ensure disconnected state for these tests
+    mockGameState.connected = false
+    mockGameState.myPid = null
   })
 
   const renderPanel = () => {
@@ -47,13 +56,13 @@ describe('ConnectionPanel Component', () => {
     renderPanel()
     
     expect(screen.getByPlaceholderText('Enter your name')).toBeInTheDocument()
-    expect(screen.getByText('Join')).toBeInTheDocument()
+    expect(screen.getByText('Join as Guest')).toBeInTheDocument()
   })
 
   it('disables join button when name is empty', () => {
     renderPanel()
     
-    const joinButton = screen.getByText('Join')
+    const joinButton = screen.getByText('Join as Guest')
     expect(joinButton).toBeDisabled()
   })
 
@@ -63,35 +72,35 @@ describe('ConnectionPanel Component', () => {
     const input = screen.getByPlaceholderText('Enter your name')
     await user.type(input, 'TestPlayer')
 
-    const joinButton = screen.getByText('Join')
+    const joinButton = screen.getByText('Join as Guest')
     expect(joinButton).not.toBeDisabled()
   })
 
   it('calls connect with player name when join is clicked', async () => {
     renderPanel()
-    
+
     const input = screen.getByPlaceholderText('Enter your name')
     await user.type(input, 'TestPlayer')
 
-    const joinButton = screen.getByText('Join')
+    const joinButton = screen.getByText('Join as Guest')
     await user.click(joinButton)
 
     await waitFor(() => {
-      expect(mockConnect).toHaveBeenCalledWith('TestPlayer', 'test-table-123')
+      expect(mockConnect).toHaveBeenCalledWith('TestPlayer', 'test-table-123', null)
     })
   })
 
   it('saves player name to sessionStorage on connect', async () => {
     renderPanel()
-    
+
     const input = screen.getByPlaceholderText('Enter your name')
     await user.type(input, 'TestPlayer')
 
-    const joinButton = screen.getByText('Join')
+    const joinButton = screen.getByText('Join as Guest')
     await user.click(joinButton)
 
     await waitFor(() => {
-      expect(sessionStorage.setItem).toHaveBeenCalledWith('playerName', 'TestPlayer')
+      expect(sessionStorage.getItem('playerName')).toBe('TestPlayer')
     })
   })
 
@@ -102,7 +111,7 @@ describe('ConnectionPanel Component', () => {
     await user.type(input, 'TestPlayer{Enter}')
 
     await waitFor(() => {
-      expect(mockConnect).toHaveBeenCalledWith('TestPlayer', 'test-table-123')
+      expect(mockConnect).toHaveBeenCalledWith('TestPlayer', 'test-table-123', null)
     })
   })
 
@@ -127,44 +136,35 @@ describe('ConnectionPanel - Connected State', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     sessionStorage.setItem('playerName', 'SavedPlayer')
+    // Set up connected state
+    mockGameState.connected = true
+    mockGameState.myPid = 'player-123'
+  })
+
+  afterEach(() => {
+    // Reset to disconnected state
+    mockGameState.connected = false
+    mockGameState.myPid = null
   })
 
   it('shows connected status when connected', () => {
-    vi.doMock('../hooks/usePokerGame.jsx', () => ({
-      usePokerGame: () => ({
-        connected: true,
-        myPid: 'player-123',
-        connect: mockConnect,
-        disconnect: mockDisconnect,
-      }),
-    }))
-
     render(
       <BrowserRouter>
         <ConnectionPanel />
       </BrowserRouter>
     )
-    
+
     expect(screen.getByText('🟢')).toBeInTheDocument()
     expect(screen.getByText(/SavedPlayer/)).toBeInTheDocument()
   })
 
   it('calls disconnect and navigates to lobby when leave is clicked', async () => {
-    vi.doMock('../hooks/usePokerGame.jsx', () => ({
-      usePokerGame: () => ({
-        connected: true,
-        myPid: 'player-123',
-        connect: mockConnect,
-        disconnect: mockDisconnect,
-      }),
-    }))
-
     render(
       <BrowserRouter>
         <ConnectionPanel />
       </BrowserRouter>
     )
-    
+
     const leaveButton = screen.getByText('Leave Table')
     await user.click(leaveButton)
 

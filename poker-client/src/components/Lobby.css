@@ -21,6 +21,55 @@
   text-shadow: 0 0 20px rgba(0, 245, 255, 0.5);
 }
 
+.lobby-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.auth-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  background: rgba(0, 245, 255, 0.1);
+  border: 1px solid rgba(0, 245, 255, 0.3);
+  border-radius: 8px;
+}
+
+.auth-username {
+  color: #00f5ff;
+  font-weight: bold;
+  font-size: 1rem;
+}
+
+.chip-count {
+  color: #00ff88;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.btn-login,
+.btn-logout {
+  background: rgba(0, 245, 255, 0.2);
+  color: #00f5ff;
+  border: 1px solid rgba(0, 245, 255, 0.5);
+  padding: 8px 16px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-login:hover,
+.btn-logout:hover {
+  background: rgba(0, 245, 255, 0.3);
+  border-color: #00f5ff;
+  transform: translateY(-1px);
+}
+
 .btn-create {
   background: linear-gradient(135deg, #00f5ff 0%, #00ff88 100%);
   color: #0f0f1e;

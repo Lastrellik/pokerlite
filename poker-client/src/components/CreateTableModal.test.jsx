@@ -39,10 +39,10 @@ describe('CreateTableModal Component', () => {
 
   it('has default values', () => {
     renderModal()
-    
+
     expect(screen.getByLabelText('Small Blind')).toHaveValue(5)
     expect(screen.getByLabelText('Big Blind')).toHaveValue(10)
-    expect(screen.getByLabelText('Max Players')).toHaveValue(8)
+    expect(screen.getByLabelText('Max Players')).toHaveValue('8') // Select returns string
     expect(screen.getByLabelText('Turn Timeout (seconds)')).toHaveValue(30)
   })
 
@@ -127,11 +127,11 @@ describe('CreateTableModal Component', () => {
 
   it('allows changing max players', async () => {
     renderModal()
-    
+
     const maxPlayersSelect = screen.getByLabelText('Max Players')
     await user.selectOptions(maxPlayersSelect, '6')
 
-    expect(maxPlayersSelect).toHaveValue(6)
+    expect(maxPlayersSelect).toHaveValue('6') // Select returns string
   })
 
   it('does not call onCreated if table creation fails', async () => {

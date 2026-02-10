@@ -158,6 +158,9 @@ describe('Lobby Component', () => {
   })
 
   it('opens create table modal when create button is clicked', async () => {
+    // Use real timers for this test
+    vi.useRealTimers()
+
     useLobby.mockReturnValue({
       tables: [],
       loading: false,
@@ -166,14 +169,20 @@ describe('Lobby Component', () => {
     })
 
     renderLobby()
-    
+
     const createButton = screen.getByText('+ Create Table')
     await user.click(createButton)
 
     expect(screen.getByTestId('create-modal')).toBeInTheDocument()
+
+    // Restore fake timers
+    vi.useFakeTimers()
   })
 
   it('closes modal when cancel is clicked', async () => {
+    // Use real timers for this test
+    vi.useRealTimers()
+
     useLobby.mockReturnValue({
       tables: [],
       loading: false,
@@ -182,7 +191,7 @@ describe('Lobby Component', () => {
     })
 
     renderLobby()
-    
+
     const createButton = screen.getByText('+ Create Table')
     await user.click(createButton)
 
@@ -192,5 +201,8 @@ describe('Lobby Component', () => {
     await waitFor(() => {
       expect(screen.queryByTestId('create-modal')).not.toBeInTheDocument()
     })
+
+    // Restore fake timers
+    vi.useFakeTimers()
   })
 })

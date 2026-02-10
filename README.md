@@ -6,6 +6,14 @@ A real-time multiplayer poker application built with FastAPI (Python) and React.
 
 ## Features
 
+### Authentication & User Management
+- **User registration and login** - Secure account creation with JWT authentication
+- **Persistent chip stacks** - Players maintain chip count across sessions
+- **Database integration** - SQLite for development, PostgreSQL-ready for production
+- **Token expiration handling** - Automatic logout and re-authentication prompts
+- **Guest mode** - Play without registration (non-persistent stacks)
+- **Lobby authentication** - Login/signup directly from lobby without joining tables
+
 ### Lobby System
 - **Table browser** - Browse and join active tables
 - **Create tables** - Customizable blinds, player limits, and turn timeouts
@@ -32,8 +40,11 @@ A real-time multiplayer poker application built with FastAPI (Python) and React.
 
 ### Technical
 - Microservices architecture (lobby + game services)
+- **JWT-based authentication** with secure password hashing (bcrypt)
+- **SQLAlchemy ORM** with SQLite/PostgreSQL support
+- **Database migrations** with Alembic
 - Shared poker logic module
-- Comprehensive test coverage (218 tests: unit, integration, E2E)
+- Comprehensive test coverage (260+ tests: unit, integration, auth, E2E)
 - **Deterministic deck shuffling** for reproducible testing
 - E2E browser automation with WebdriverIO
 - Docker support for easy deployment
@@ -44,6 +55,7 @@ A real-time multiplayer poker application built with FastAPI (Python) and React.
 ```
 ┌─────────────────┐
 │  Lobby Service  │  (HTTP REST - Port 8000)
+│  - Auth/Users   │
 │  - List tables  │
 │  - Create table │
 └────────┬────────┘
@@ -55,16 +67,19 @@ A real-time multiplayer poker application built with FastAPI (Python) and React.
 │  - Poker logic  │
 └────────┬────────┘
          │
-    ┌────▼─────┐
-    │  Shared  │  (Common poker logic)
-    └──────────┘
+    ┌────▼─────┐        ┌──────────┐
+    │  Shared  │◄───────┤ Database │
+    │  Module  │        │ (SQLite/ │
+    └──────────┘        │  Postgres)
+                        └──────────┘
 ```
 
-- **Lobby Service**: FastAPI REST API for table management
+- **Lobby Service**: FastAPI REST API for table management and authentication
 - **Game Service**: FastAPI + WebSocket for real-time gameplay
-- **Shared Module**: Common poker logic, models, and utilities
+- **Shared Module**: Common poker logic, models, database models (SQLAlchemy)
+- **Database**: SQLite for dev, PostgreSQL-ready for production
 - **Frontend**: React 19 + Vite + React Router
-- **Communication**: HTTP for lobby, WebSocket for game
+- **Communication**: HTTP for lobby/auth, WebSocket for game (with JWT support)
 
 ## Quick Start
 
@@ -170,10 +185,18 @@ PORT=8000
 # CORS (comma-separated origins for development)
 CORS_ORIGINS=http://localhost:5173,http://localhost:3000
 
-# Future configurations (not yet implemented):
+# Authentication
+SECRET_KEY=your-secret-key-change-this-in-production
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=60
+
+# Database (SQLite by default, PostgreSQL for production)
+DATABASE_URL=sqlite:///./pokerlite.db
+# For PostgreSQL:
 # DATABASE_URL=postgresql://user:password@localhost:5432/pokerlite
+
+# Future configurations (not yet implemented):
 # REDIS_URL=redis://localhost:6379
-# SECRET_KEY=your-secret-key
 # LOG_LEVEL=INFO
 ```
 
@@ -194,11 +217,23 @@ cp poker-client/.env.example poker-client/.env
 
 ### HTTP Endpoints
 
+**Health & Info:**
 - `GET /api/health` - Health check endpoint
+
+**Authentication:**
+- `POST /api/auth/register` - Create new user account (returns JWT token)
+- `POST /api/auth/login` - Login with username/password (returns JWT token)
+- `GET /api/auth/me` - Get current user info (requires authentication)
+- `GET /api/auth/stack` - Get user's chip stack (requires authentication)
+- `POST /api/auth/add-chips` - Add chips to stack for testing (requires authentication)
+
+**Tables:**
+- `GET /api/tables` - List all active tables
+- `POST /api/tables` - Create a new table
 
 ### WebSocket Endpoints
 
-- `WS /ws/{table_id}` - Connect to a poker table
+- `WS /ws/{table_id}` - Connect to a poker table (supports JWT authentication)
 
 ## Development
 
@@ -290,11 +325,12 @@ npm run test:e2e -- --spec=e2e/specs/basic-gameplay.e2e.js
 **E2E test features:**
 - Real browser automation with Firefox
 - Tests complete gameplay flows (join, start hand, betting, showdown)
+- **Authentication flow testing** - Registration, login, logout, token validation
 - **Deterministic deck shuffling** - Uses seeded RNG for reproducible test scenarios
 - Test-only API endpoints for configuration and state verification
 - Headed mode by default for debugging, headless for CI
 
-**Total: 218+ tests (unit + integration + E2E) ✅**
+**Total: 260+ tests (unit + integration + auth + E2E) ✅**
 
 ### Building for Production
 
@@ -360,25 +396,34 @@ docker build -t pokerlite .
 
 ## How to Play
 
-1. Open the application in your browser
-2. Enter your player name and table ID
-3. Click "Connect" to join a table
-4. Wait for at least 2 players to join
-5. Click "Start Hand" to begin a new hand
-6. Use the action buttons (Check, Call, Raise, Fold) to play
+1. Open the application in your browser (http://localhost:5173)
+2. **Optional**: Create an account or login to save your chip stack
+   - Click "Login / Sign Up" in the lobby
+   - Register with a username and password
+   - Or continue as guest (chip count won't persist)
+3. Browse available tables or create a new one
+4. Click "Join Table" to enter a game
+5. Wait for at least 2 players to join
+6. Click "Start Hand" to begin a new hand
+7. Use the action buttons (Check, Call, Raise, Fold) to play
 
 ## Roadmap
 
-Future enhancements planned:
+**Completed Features:**
+- [x] PostgreSQL integration for user profiles
+- [x] User authentication and authorization (JWT)
+- [x] Persistent chip stacks across sessions
+- [x] Database migrations (Alembic)
 
-- [ ] PostgreSQL integration for user profiles and game history
-- [ ] User authentication and authorization
-- [ ] Persistent game state
+**Future Enhancements:**
+- [ ] Game history and hand replay
 - [ ] Player statistics and leaderboards
 - [ ] Logging and monitoring
 - [ ] Tournament mode
 - [ ] Chat functionality
 - [ ] Mobile-responsive design improvements
+- [ ] Email verification
+- [ ] Password reset functionality
 
 ## Contributing
 

@@ -67,7 +67,7 @@ describe('usePokerGame', () => {
         const sent = JSON.parse(mockWebSocket.lastSentData)
         expect(sent.type).toBe('join')
         expect(sent.name).toBe('Alice')
-        expect(sent.pid).toBeNull()
+        expect(sent.pid).toBeUndefined()
       })
     })
 
@@ -106,7 +106,7 @@ describe('usePokerGame', () => {
         expect(sent.type).toBe('join')
         expect(sent.name).toBe('Bob')
         // Should NOT reuse Alice's pid
-        expect(sent.pid).toBeNull()
+        expect(sent.pid).toBeUndefined()
       })
     })
 

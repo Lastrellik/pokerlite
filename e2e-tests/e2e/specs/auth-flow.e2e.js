@@ -8,10 +8,18 @@ describe('Authentication Flow', () => {
   const testEmail = `test_${timestamp}_${randomId}@example.com`
   const testPassword = 'TestPassword123!'
 
-  it('should complete full auth flow: register, logout, login', async () => {
-    // Navigate to lobby
+  beforeEach(async () => {
+    // Navigate to lobby and clear localStorage before each test
     await browser.url('http://localhost:5173/')
+    await browser.execute(() => {
+      localStorage.clear()
+    })
+    // Reload to apply the cleared state
+    await browser.refresh()
     await browser.pause(1000)
+  })
+
+  it('should complete full auth flow: register, logout, login', async () => {
 
     console.log(`Creating test account: ${testUsername}`)
 
@@ -37,24 +45,23 @@ describe('Authentication Flow', () => {
     const loginModal = await $('.login-modal')
     await expect(loginModal).toBeDisplayed()
 
-    // Switch to register tab
-    const registerTab = await $('button=Sign Up')
-    await registerTab.click()
+    // Switch to register mode
+    const registerLink = await $('button=Sign up')
+    await registerLink.click()
     await browser.pause(300)
 
     // Fill in registration form
-    const usernameInput = await $('input[placeholder="Username"]')
+    const usernameInput = await $('input[placeholder="Enter username"]')
     await usernameInput.setValue(testUsername)
 
-    const emailInput = await $('input[type="email"]')
+    const passwordInput = await $('input[placeholder="Enter password"]')
+    await passwordInput.setValue(testPassword)
+
+    const emailInput = await $('input[placeholder="Enter email"]')
     await emailInput.setValue(testEmail)
 
-    const passwordInputs = await $$('input[type="password"]')
-    await passwordInputs[0].setValue(testPassword)
-    await passwordInputs[1].setValue(testPassword)
-
     // Submit registration
-    const registerButton = await $('button=Sign Up')
+    const registerButton = await $('button=Create Account')
     await registerButton.click()
 
     // Wait for successful registration (modal should close)
@@ -103,30 +110,31 @@ describe('Authentication Flow', () => {
     await loginBtnAfterLogout.click()
     await browser.pause(300)
 
-    // Should see login modal
-    await expect(loginModal).toBeDisplayed()
+    // Should see login modal (query again since it's a new instance)
+    const loginModalAgain = await $('.login-modal')
+    await expect(loginModalAgain).toBeDisplayed()
 
-    // Make sure we're on Login tab (not Sign Up)
-    const loginTab = await $('button=Log In')
-    if (await loginTab.isExisting()) {
-      await loginTab.click()
+    // Make sure we're on Login mode (not register)
+    const loginLink = await $('button=Login')
+    if (await loginLink.isExisting()) {
+      await loginLink.click()
       await browser.pause(200)
     }
 
     // Fill in login form
-    const loginUsernameInput = await $('input[placeholder="Username"]')
+    const loginUsernameInput = await $('input[placeholder="Enter username"]')
     await loginUsernameInput.setValue(testUsername)
 
-    const loginPasswordInput = await $('input[type="password"]')
+    const loginPasswordInput = await $('input[placeholder="Enter password"]')
     await loginPasswordInput.setValue(testPassword)
 
     // Submit login
-    const loginSubmitBtn = await $('button=Log In')
+    const loginSubmitBtn = await $('button=Login')
     await loginSubmitBtn.click()
 
     // Wait for successful login
     await browser.waitUntil(
-      async () => !(await loginModal.isDisplayed()),
+      async () => !(await loginModalAgain.isDisplayed()),
       {
         timeout: 5000,
         timeoutMsg: 'Login did not complete - modal still visible'
@@ -140,17 +148,16 @@ describe('Authentication Flow', () => {
     await expect(authUsernameAfterLogin).toBeDisplayed()
     console.log('✓ Logged in successfully')
 
-    // Verify chip count is still visible
-    await expect(chipCount).toBeDisplayed()
+    // Verify chip count is still visible (query again and wait for API call)
+    const chipCountAfterLogin = await $('.chip-count')
+    await chipCountAfterLogin.waitForDisplayed({ timeout: 5000 })
+    await expect(chipCountAfterLogin).toBeDisplayed()
     console.log('✓ Chip count restored')
 
     console.log(`\n✅ Full auth flow completed successfully for ${testUsername}`)
   })
 
   it('should handle login with wrong password', async () => {
-    await browser.url('http://localhost:5173/')
-    await browser.pause(1000)
-
     // Click login button
     const loginBtn = await $('button=Login / Sign Up')
     if (await loginBtn.isExisting()) {
@@ -160,21 +167,21 @@ describe('Authentication Flow', () => {
       const loginModal = await $('.login-modal')
       await expect(loginModal).toBeDisplayed()
 
-      // Make sure we're on Login tab
-      const loginTab = await $('button=Log In')
-      if (await loginTab.isExisting()) {
-        await loginTab.click()
+      // Make sure we're on Login mode
+      const loginLink = await $('button=Login')
+      if (await loginLink.isExisting()) {
+        await loginLink.click()
         await browser.pause(200)
       }
 
       // Try to login with wrong password
-      const usernameInput = await $('input[placeholder="Username"]')
+      const usernameInput = await $('input[placeholder="Enter username"]')
       await usernameInput.setValue(testUsername)
 
-      const passwordInput = await $('input[type="password"]')
+      const passwordInput = await $('input[placeholder="Enter password"]')
       await passwordInput.setValue('WrongPassword123!')
 
-      const loginSubmitBtn = await $('button=Log In')
+      const loginSubmitBtn = await $('button=Login')
       await loginSubmitBtn.click()
 
       // Should show error (modal stays open or shows error message)
@@ -187,9 +194,6 @@ describe('Authentication Flow', () => {
   })
 
   it('should handle registration with duplicate username', async () => {
-    await browser.url('http://localhost:5173/')
-    await browser.pause(1000)
-
     // Open login modal
     const loginBtn = await $('button=Login / Sign Up')
     await loginBtn.click()
@@ -197,24 +201,23 @@ describe('Authentication Flow', () => {
 
     const loginModal = await $('.login-modal')
 
-    // Switch to register tab
-    const registerTab = await $('button=Sign Up')
-    if (await registerTab.isExisting()) {
-      await registerTab.click()
+    // Switch to register mode
+    const registerLink = await $('button=Sign up')
+    if (await registerLink.isExisting()) {
+      await registerLink.click()
       await browser.pause(200)
 
       // Try to register with existing username
-      const usernameInput = await $('input[placeholder="Username"]')
+      const usernameInput = await $('input[placeholder="Enter username"]')
       await usernameInput.setValue(testUsername) // Same as first test
 
-      const emailInput = await $('input[type="email"]')
+      const passwordInput = await $('input[placeholder="Enter password"]')
+      await passwordInput.setValue(testPassword)
+
+      const emailInput = await $('input[placeholder="Enter email"]')
       await emailInput.setValue(`different_${testEmail}`)
 
-      const passwordInputs = await $$('input[type="password"]')
-      await passwordInputs[0].setValue(testPassword)
-      await passwordInputs[1].setValue(testPassword)
-
-      const registerButton = await $('button=Sign Up')
+      const registerButton = await $('button=Create Account')
       await registerButton.click()
 
       // Should show error (modal stays open)
