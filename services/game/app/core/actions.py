@@ -78,7 +78,20 @@ async def _handle_action(table: TableState, pid: str, msg: Dict[str, Any]) -> Op
     player = table.players[pid]
     player_current_bet = table.player_bets.get(pid, 0)
 
-    # Mark player as having acted
+    # Validate action before marking as acted
+    # Handle check
+    if action == "check":
+        # Can only check if no bet to call
+        if table.current_bet > player_current_bet:
+            return None  # Invalid action
+
+    # Handle raise
+    elif action == "raise":
+        # Validate amount is positive
+        if amount is None or amount <= 0:
+            return None  # Invalid raise amount
+
+    # Mark player as having acted (only after validation passes)
     table.players_acted.add(pid)
 
     # Record last action for UI animations
@@ -99,9 +112,6 @@ async def _handle_action(table: TableState, pid: str, msg: Dict[str, Any]) -> Op
 
     # Handle check
     elif action == "check":
-        # Can only check if no bet to call
-        if table.current_bet > player_current_bet:
-            return None  # Invalid action
         action_msg = f"{player.name} checks"
 
     # Handle call
@@ -117,9 +127,6 @@ async def _handle_action(table: TableState, pid: str, msg: Dict[str, Any]) -> Op
 
     # Handle raise
     elif action == "raise":
-        # Validate amount is positive
-        if amount is None or amount <= 0:
-            return None  # Invalid raise amount
         process_raise(table, pid, amount)
         action_msg = f"{player.name} raises to ${amount}"
 

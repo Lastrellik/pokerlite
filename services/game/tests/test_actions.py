@@ -105,11 +105,55 @@ class TestActionHandling:
         """Test that acting out of turn returns None."""
         table = table_with_three_players
         start_new_hand(table)
-        
+
         # Find a player who is NOT current
         not_current = [pid for pid in table.players if pid != table.current_turn_pid][0]
 
         result = await handle_message(table, not_current, {"type": "action", "action": "check"})
+
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_cannot_check_when_facing_bet(self, table_with_three_players):
+        """Test that checking when there's a bet to call returns None."""
+        table = table_with_three_players
+        start_new_hand(table)
+
+        # First player raises
+        pid1 = table.current_turn_pid
+        await handle_message(table, pid1, {"type": "action", "action": "raise", "amount": 50})
+
+        # Next player tries to check (illegal - should call, raise, or fold)
+        pid2 = table.current_turn_pid
+        result = await handle_message(table, pid2, {"type": "action", "action": "check"})
+
+        assert result is None  # Illegal action
+        assert pid2 not in table.players_acted  # Should not mark as acted
+
+    @pytest.mark.asyncio
+    async def test_cannot_raise_with_zero_amount(self, table_with_three_players):
+        """Test that raising with 0 or negative amount returns None."""
+        table = table_with_three_players
+        start_new_hand(table)
+
+        pid = table.current_turn_pid
+
+        # Try to raise with 0
+        result = await handle_message(table, pid, {"type": "action", "action": "raise", "amount": 0})
+        assert result is None
+
+        # Try to raise with negative amount
+        result = await handle_message(table, pid, {"type": "action", "action": "raise", "amount": -10})
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_cannot_raise_without_amount(self, table_with_three_players):
+        """Test that raising without specifying amount returns None."""
+        table = table_with_three_players
+        start_new_hand(table)
+
+        pid = table.current_turn_pid
+        result = await handle_message(table, pid, {"type": "action", "action": "raise"})
 
         assert result is None
 
