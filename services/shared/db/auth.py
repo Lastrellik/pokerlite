@@ -11,7 +11,8 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 # JWT settings from environment
 SECRET_KEY = os.getenv("SECRET_KEY", "dev_secret_key_change_in_production_12345")
 ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
+# Default to 7 days (10080 minutes) - this is a casual poker game, not a bank
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "10080"))
 
 
 def hash_password(password: str) -> str:
