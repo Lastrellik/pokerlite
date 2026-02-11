@@ -489,6 +489,7 @@ function PokerTable({ tableId }) {
           waitlistPosition={gameState.waitlist_position}
           onJoinWaitlist={joinWaitlist}
           onLeaveWaitlist={leaveWaitlist}
+          myStack={myPlayer?.stack || 0}
         />
       )}
 

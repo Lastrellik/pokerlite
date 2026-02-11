@@ -1,7 +1,8 @@
 import './SpectatorPanel.css'
 
-function SpectatorPanel({ role, waitlistPosition, onJoinWaitlist, onLeaveWaitlist }) {
+function SpectatorPanel({ role, waitlistPosition, onJoinWaitlist, onLeaveWaitlist, myStack }) {
   const isOnWaitlist = role === 'waitlist'
+  const hasNoChips = myStack === 0
 
   return (
     <div className="spectator-panel">
@@ -18,7 +19,9 @@ function SpectatorPanel({ role, waitlistPosition, onJoinWaitlist, onLeaveWaitlis
       <div className="spectator-message">
         {isOnWaitlist
           ? 'You will be seated when a spot opens up'
-          : 'Join the waitlist to play when a seat opens'}
+          : hasNoChips
+            ? 'You need chips to join the waitlist. Add chips in the lobby to play.'
+            : 'Join the waitlist to play when a seat opens'}
       </div>
 
       <div className="spectator-actions">
@@ -29,7 +32,7 @@ function SpectatorPanel({ role, waitlistPosition, onJoinWaitlist, onLeaveWaitlis
           >
             Leave Waitlist
           </button>
-        ) : (
+        ) : hasNoChips ? null : (
           <button
             className="waitlist-button join"
             onClick={onJoinWaitlist}
