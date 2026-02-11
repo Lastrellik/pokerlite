@@ -101,3 +101,46 @@ class TestTableState:
 
         # Should not raise
         table.mark_disconnected("nonexistent")
+
+    def test_upsert_player_with_zero_chips_becomes_spectator(self):
+        """Players with 0 chips should be forced to spectator role."""
+        from app.core.models import PlayerRole
+        table = TableState(table_id="test-table")
+
+        player = table.upsert_player("p1", "Alice", stack=0)
+
+        assert player.role == PlayerRole.SPECTATOR
+        assert player.stack == 0
+        assert player.seat == 0
+        assert "p1" in table.spectator_pids
+
+    def test_upsert_player_with_chips_becomes_seated(self):
+        """Players with chips should be seated normally."""
+        from app.core.models import PlayerRole
+        table = TableState(table_id="test-table")
+
+        player = table.upsert_player("p1", "Alice", stack=1000)
+
+        assert player.role == PlayerRole.SEATED
+        assert player.stack == 1000
+        assert player.seat == 1
+        assert "p1" not in table.spectator_pids
+
+    def test_reconnecting_player_with_zero_chips_stays_seated(self):
+        """Reconnecting players keep their role even with 0 chips."""
+        from app.core.models import PlayerRole
+        table = TableState(table_id="test-table")
+
+        # First join with chips
+        table.upsert_player("p1", "Alice", stack=1000)
+        # Lose all chips
+        table.players["p1"].stack = 0
+        # Disconnect
+        table.players["p1"].connected = False
+
+        # Reconnect with 0 chips
+        player = table.upsert_player("p1", "Alice", stack=0)
+
+        # Should keep seated role (reconnecting player)
+        assert player.role == PlayerRole.SEATED
+        assert player.connected is True

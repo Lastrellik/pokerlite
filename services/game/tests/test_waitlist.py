@@ -21,7 +21,7 @@ def table():
 def table_with_spectator(table):
     """Table with one seated player and one spectator."""
     table.upsert_player("seated1", "Seated Player")
-    table.upsert_player("spectator1", "Spectator", force_spectator=True)
+    table.upsert_player("spectator1", "Spectator", force_spectator=True, stack=1000)
     return table
 
 
@@ -55,6 +55,16 @@ class TestJoinWaitlist:
         result = join_waitlist(table, "nobody")
         assert result is False
 
+    def test_spectator_with_zero_chips_cannot_join(self, table):
+        # Add spectator with 0 chips
+        table.upsert_player("broke_player", "Broke Player", stack=0)
+
+        result = join_waitlist(table, "broke_player")
+
+        assert result is False
+        assert "broke_player" not in table.waitlist
+        assert table.players["broke_player"].role == PlayerRole.SPECTATOR
+
 
 class TestLeaveWaitlist:
     def test_can_leave_waitlist(self, table_with_spectator):
@@ -71,10 +81,10 @@ class TestLeaveWaitlist:
 
 class TestPromoteFromWaitlist:
     def test_promotes_first_in_queue(self, table):
-        # Add two spectators
+        # Add two spectators with chips
         table.upsert_player("p1", "Player 1")
-        table.upsert_player("p2", "Player 2", force_spectator=True)
-        table.upsert_player("p3", "Player 3", force_spectator=True)
+        table.upsert_player("p2", "Player 2", force_spectator=True, stack=1000)
+        table.upsert_player("p3", "Player 3", force_spectator=True, stack=1500)
 
         # Add to waitlist
         join_waitlist(table, "p2")
@@ -84,7 +94,7 @@ class TestPromoteFromWaitlist:
         promoted = promote_from_waitlist(table)
         assert promoted == "p2"
         assert table.players["p2"].role == PlayerRole.SEATED
-        assert table.players["p2"].stack == DEFAULT_STARTING_STACK
+        assert table.players["p2"].stack == 1000  # Keeps their existing stack
         assert table.players["p2"].seat > 0
 
     def test_no_promotion_during_hand(self, table_with_spectator):
@@ -96,7 +106,7 @@ class TestPromoteFromWaitlist:
 
     def test_no_promotion_when_full(self, full_table):
         # Add spectator to full table
-        full_table.upsert_player("spectator", "Spectator", force_spectator=True)
+        full_table.upsert_player("spectator", "Spectator", force_spectator=True, stack=1000)
         join_waitlist(full_table, "spectator")
 
         promoted = promote_from_waitlist(full_table)
@@ -104,8 +114,8 @@ class TestPromoteFromWaitlist:
 
     def test_skips_disconnected_players(self, table):
         table.upsert_player("p1", "Player 1")
-        table.upsert_player("p2", "Player 2", force_spectator=True)
-        table.upsert_player("p3", "Player 3", force_spectator=True)
+        table.upsert_player("p2", "Player 2", force_spectator=True, stack=1000)
+        table.upsert_player("p3", "Player 3", force_spectator=True, stack=1000)
 
         join_waitlist(table, "p2")
         join_waitlist(table, "p3")
@@ -116,10 +126,30 @@ class TestPromoteFromWaitlist:
         promoted = promote_from_waitlist(table)
         assert promoted == "p3"
 
+    def test_skips_players_with_zero_chips(self, table):
+        """Players with 0 chips should be skipped during promotion."""
+        table.upsert_player("p1", "Player 1")
+        table.upsert_player("broke", "Broke Player", force_spectator=True, stack=1000)
+        table.upsert_player("rich", "Rich Player", force_spectator=True, stack=2000)
+
+        # Manually add broke player to waitlist (normally wouldn't be allowed)
+        table.waitlist.append("broke")
+        table.players["broke"].role = PlayerRole.WAITLIST
+        # Then set their chips to 0
+        table.players["broke"].stack = 0
+
+        # Add rich player normally
+        join_waitlist(table, "rich")
+
+        # Should skip broke player and promote rich player
+        promoted = promote_from_waitlist(table)
+        assert promoted == "rich"
+        assert table.players["rich"].role == PlayerRole.SEATED
+
 
 class TestGetWaitlistPosition:
     def test_returns_position(self, table_with_spectator):
-        table_with_spectator.upsert_player("spec2", "Spectator 2", force_spectator=True)
+        table_with_spectator.upsert_player("spec2", "Spectator 2", force_spectator=True, stack=1000)
         join_waitlist(table_with_spectator, "spectator1")
         join_waitlist(table_with_spectator, "spec2")
 
@@ -141,7 +171,7 @@ class TestPlayerCap:
         # Try to add one more
         player = table.upsert_player("extra", "Extra Player")
         assert player.role == PlayerRole.SPECTATOR
-        assert player.stack == 0
+        assert player.stack == DEFAULT_STARTING_STACK  # Spectators keep their chips for waitlist
 
     def test_new_player_during_hand_is_spectator(self, table):
         """New players joining during a hand become spectators."""

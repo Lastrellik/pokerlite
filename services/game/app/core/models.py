@@ -79,10 +79,11 @@ class TableState:
             if p.role == PlayerRole.SEATED and p.connected
         )
 
-        if force_spectator or seated_count >= self.max_players or self.hand_in_progress:
+        # Players with 0 chips must be spectators
+        if force_spectator or seated_count >= self.max_players or self.hand_in_progress or starting_stack == 0:
             # Add as spectator
             player = Player(
-                pid=pid, name=name, seat=0, stack=0,
+                pid=pid, name=name, seat=0, stack=starting_stack,
                 role=PlayerRole.SPECTATOR, connected=True
             )
             self.spectator_pids.add(pid)

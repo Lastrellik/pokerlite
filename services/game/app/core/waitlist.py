@@ -8,7 +8,7 @@ from poker.constants import MAX_PLAYERS, DEFAULT_STARTING_STACK
 def join_waitlist(table: TableState, pid: str) -> bool:
     """
     Add a spectator to the waitlist.
-    Returns True if added, False if already on waitlist or seated.
+    Returns True if added, False if already on waitlist, seated, or has no chips.
     """
     if pid in table.waitlist:
         return False
@@ -18,6 +18,10 @@ def join_waitlist(table: TableState, pid: str) -> bool:
         return False
 
     if player.role == PlayerRole.SEATED:
+        return False
+
+    # Cannot join waitlist without chips
+    if player.stack == 0:
         return False
 
     table.waitlist.append(pid)
@@ -66,6 +70,10 @@ def promote_from_waitlist(table: TableState) -> str | None:
         if not player or not player.connected:
             continue
 
+        # Skip players with 0 chips (shouldn't be on waitlist, but just in case)
+        if player.stack == 0:
+            continue
+
         # Assign seat
         used_seats = {p.seat for p in table.players.values() if p.role == PlayerRole.SEATED}
         seat = 1
@@ -74,7 +82,7 @@ def promote_from_waitlist(table: TableState) -> str | None:
 
         player.seat = seat
         player.role = PlayerRole.SEATED
-        player.stack = DEFAULT_STARTING_STACK
+        # Don't override stack - player keeps their existing chips
         return pid
 
     return None
