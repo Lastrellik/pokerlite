@@ -8,16 +8,55 @@ import CreateTableModal from './CreateTableModal'
 import LoginModal from './LoginModal'
 import './Lobby.css'
 
+// Helper to check if token is expired
+function isTokenExpired(token) {
+  if (!token) return true
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    if (payload.exp) {
+      const now = Math.floor(Date.now() / 1000)
+      return payload.exp < now
+    }
+    return false
+  } catch (e) {
+    console.error('Failed to decode token:', e)
+    return true
+  }
+}
+
 export default function Lobby() {
   const navigate = useNavigate()
   const { tables, loading, error, fetchTables } = useLobby()
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showLoginModal, setShowLoginModal] = useState(false)
-  const [authToken, setAuthToken] = useState(localStorage.getItem('auth_token'))
-  const [authUsername, setAuthUsername] = useState(localStorage.getItem('username'))
+  const [authToken, setAuthToken] = useState(null)
+  const [authUsername, setAuthUsername] = useState(null)
   const [chipCount, setChipCount] = useState(null)
 
   const LOBBY_URL = import.meta.env.VITE_LOBBY_URL || 'http://localhost:8000'
+
+  // Validate token on mount
+  useEffect(() => {
+    const token = localStorage.getItem('auth_token')
+    const username = localStorage.getItem('username')
+
+    if (token && username) {
+      if (isTokenExpired(token)) {
+        // Token expired, clear everything
+        console.log('Token expired on mount, clearing credentials')
+        localStorage.removeItem('auth_token')
+        localStorage.removeItem('username')
+        localStorage.removeItem('user_id')
+        localStorage.removeItem('avatar_id')
+        setAuthToken(null)
+        setAuthUsername(null)
+      } else {
+        // Token valid, set state
+        setAuthToken(token)
+        setAuthUsername(username)
+      }
+    }
+  }, [])
 
   useEffect(() => {
     fetchTables()
@@ -34,7 +73,23 @@ export default function Lobby() {
           'Authorization': `Bearer ${authToken}`
         }
       })
-        .then(res => res.json())
+        .then(async res => {
+          if (!res.ok) {
+            // Auth failed, clear credentials
+            if (res.status === 401 || res.status === 403) {
+              console.log('Auth failed when fetching chips, clearing credentials')
+              localStorage.removeItem('auth_token')
+              localStorage.removeItem('username')
+              localStorage.removeItem('user_id')
+              localStorage.removeItem('avatar_id')
+              setAuthToken(null)
+              setAuthUsername(null)
+              setChipCount(null)
+            }
+            throw new Error(`HTTP ${res.status}`)
+          }
+          return res.json()
+        })
         .then(data => {
           if (data.stack !== undefined) {
             setChipCount(data.stack)
