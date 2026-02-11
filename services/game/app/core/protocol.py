@@ -41,6 +41,9 @@ def public_state(table: TableState, viewer_pid: Optional[str] = None) -> dict:
     # Get waitlist position for viewer
     waitlist_position = get_waitlist_position(table, viewer_pid) if viewer_pid else 0
 
+    # Get viewer's stack (for spectators who aren't in the players list)
+    viewer_stack = viewer.stack if viewer else 0
+
     # Build spectator list (names only)
     spectators = [
         {"pid": p.pid, "name": p.name}
@@ -131,6 +134,7 @@ def public_state(table: TableState, viewer_pid: Optional[str] = None) -> dict:
 
         # Player role and management info
         "my_role": viewer_role,
+        "my_stack": viewer_stack,
         "waitlist_position": waitlist_position,
         "spectators": spectators,
         "waitlist": waitlist,
