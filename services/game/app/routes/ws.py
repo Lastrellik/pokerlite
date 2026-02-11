@@ -4,6 +4,9 @@ import secrets
 import asyncio
 import httpx
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 from ..core.tables import get_table, delete_table
 from ..core.protocol import broadcast_state
@@ -28,10 +31,10 @@ async def cleanup_empty_table(table_id: str) -> None:
 
     # Debug: show connected players
     connected_players = [p.name for p in table.players.values() if p.connected]
-    print(f"[CLEANUP] Table {table_id} has {len(connected_players)} connected players: {connected_players}")
+    logger.debug(f"[CLEANUP] Table {table_id} has {len(connected_players)} connected players: {connected_players}")
 
     if table.has_no_connected_players():
-        print(f"[CLEANUP] Table {table_id} is empty, deleting...")
+        logger.info(f"[CLEANUP] Table {table_id} is empty, deleting...")
 
         # Delete from game service
         delete_table(table_id)
@@ -41,11 +44,11 @@ async def cleanup_empty_table(table_id: str) -> None:
             async with httpx.AsyncClient() as client:
                 response = await client.delete(f"{LOBBY_URL}/api/tables/{table_id}", timeout=5.0)
                 if response.status_code == 204:
-                    print(f"[CLEANUP] Table {table_id} deleted from lobby")
+                    logger.info(f"[CLEANUP] Table {table_id} deleted from lobby")
                 else:
-                    print(f"[CLEANUP] Failed to delete table {table_id} from lobby: {response.status_code}")
+                    logger.warning(f"[CLEANUP] Failed to delete table {table_id} from lobby: {response.status_code}")
         except Exception as e:
-            print(f"[CLEANUP] Error deleting table {table_id} from lobby: {e}")
+            logger.error(f"[CLEANUP] Error deleting table {table_id} from lobby: {e}")
 
         # Stop timeout checker task
         task = _timeout_tasks.pop(table_id, None)
@@ -72,12 +75,12 @@ async def _timeout_checker(table_id: str):
 
             # Handle runout mode (all players all-in)
             if table.runout_in_progress:
-                print(f"[RUNOUT] Processing runout on {table.street}")
+                logger.debug(f"[RUNOUT] Processing runout on {table.street}")
                 if table.street == "river":
                     # Runout complete, go to showdown
                     table.runout_in_progress = False
                     info_msg = run_showdown(table)
-                    print(f"[RUNOUT] Showdown complete: {info_msg}")
+                    logger.debug(f"[RUNOUT] Showdown complete: {info_msg}")
                 else:
                     # Deal next street
                     advance_street(table)
@@ -87,7 +90,7 @@ async def _timeout_checker(table_id: str):
                     street_names = {"flop": "Flop", "turn": "Turn", "river": "River"}
                     street_name = street_names.get(table.street, table.street)
                     info_msg = f"📋 Dealing {street_name}: {' '.join(table.board)}"
-                    print(f"[RUNOUT] Advanced to {table.street}: {' '.join(table.board)}")
+                    logger.debug(f"[RUNOUT] Advanced to {table.street}: {' '.join(table.board)}")
 
                 # Broadcast info message
                 if info_msg:
@@ -145,7 +148,9 @@ async def _timeout_checker(table_id: str):
 
 @router.websocket("/ws/{table_id}")
 async def ws_endpoint(ws: WebSocket, table_id: str):
+    logger.info(f"[WS] WebSocket endpoint called for table {table_id}")
     await ws.accept()
+    logger.info(f"[WS] WebSocket accepted")
     table = get_table(table_id)
 
     # First message must be join
@@ -153,7 +158,7 @@ async def ws_endpoint(ws: WebSocket, table_id: str):
         first = await ws.receive_text()
         hello = json.loads(first)
     except Exception as e:
-        print(f"[WS] Error receiving/parsing join message: {e}")
+        logger.error(f"[WS] Error receiving/parsing join message: {e}")
         await ws.close()
         return
 
@@ -176,9 +181,9 @@ async def ws_endpoint(ws: WebSocket, table_id: str):
             pid = f"user_{user.id}"  # Use consistent PID based on user ID
             user_id = user.id
             initial_stack = stack
-            print(f"[AUTH] Authenticated user {name} (ID: {user_id}) with stack: {stack}")
+            logger.info(f"[AUTH] Authenticated user {name} (ID: {user_id}) with stack: {stack}")
         else:
-            print(f"[AUTH] Token validation failed, closing connection")
+            logger.warning(f"[AUTH] Token validation failed, closing connection")
             await ws.send_text(json.dumps({"type": "error", "message": "Invalid authentication token"}))
             await ws.close()
             return
@@ -186,17 +191,17 @@ async def ws_endpoint(ws: WebSocket, table_id: str):
         # Guest player (no auth)
         name = (hello.get("name") or "guest")[:24]
         pid = hello.get("pid") or secrets.token_hex(8)
-        print(f"[WS] Guest player {name} connecting (no auth)")
+        logger.info(f"[WS] Guest player {name} connecting (no auth)")
 
     async with table.lock:
         # Check if player is already connected
         if pid in table.connections:
-            print(f"[WS] WARNING: Player {pid} ({name}) reconnecting - closing old connection")
+            logger.warning(f"[WS] Player {pid} ({name}) reconnecting - closing old connection")
             try:
                 old_ws = table.connections[pid]
                 await old_ws.close()
             except Exception as e:
-                print(f"[WS] Error closing old connection: {e}")
+                logger.error(f"[WS] Error closing old connection: {e}")
 
         table.upsert_player(pid=pid, name=name, stack=initial_stack)
         table.connections[pid] = ws
@@ -207,7 +212,7 @@ async def ws_endpoint(ws: WebSocket, table_id: str):
                 table.user_ids = {}
             table.user_ids[pid] = user_id
 
-        print(f"[WS] Player {pid} ({name}) connected to table {table_id} with {initial_stack} chips")
+        logger.info(f"[WS] Player {pid} ({name}) connected to table {table_id} with {initial_stack} chips")
 
     # Start timeout checker if not running
     if table_id not in _timeout_tasks or _timeout_tasks[table_id].done():
@@ -235,14 +240,14 @@ async def ws_endpoint(ws: WebSocket, table_id: str):
             await broadcast_state(table)
 
     except WebSocketDisconnect:
-        print(f"[WS] Player {pid} ({name}) disconnected from table {table_id}")
+        logger.info(f"[WS] Player {pid} ({name}) disconnected from table {table_id}")
         async with table.lock:
             table.connections.pop(pid, None)
 
             # Handle in-game disconnect (fold player out if needed)
             info_msg = handle_disconnect(table, pid)
             if info_msg:
-                print(f"[WS] Disconnect handled: {info_msg}")
+                logger.info(f"[WS] Disconnect handled: {info_msg}")
 
             # Mark player as disconnected (preserves their stack and data)
             table.mark_disconnected(pid)

@@ -178,7 +178,7 @@ describe('PokerTable Component', () => {
     expect(screen.getByText('spectator')).toBeInTheDocument()
   })
 
-  it('redirects to lobby after 3 seconds when player busts out', () => {
+  it('stays on page when player busts out (becomes spectator)', () => {
     const players = [
       { pid: 'p1', name: 'Alice', seat: 1, stack: 0, connected: true },
     ]
@@ -197,13 +197,15 @@ describe('PokerTable Component', () => {
     })
 
     renderTable()
-    
+
+    // Should not redirect - player stays as spectator
     expect(mockNavigate).not.toHaveBeenCalled()
 
     // Fast forward 3 seconds
     vi.advanceTimersByTime(3000)
 
-    expect(mockNavigate).toHaveBeenCalledWith('/')
+    // Still should not redirect
+    expect(mockNavigate).not.toHaveBeenCalled()
   })
 
   it('does not redirect if player has chips', () => {

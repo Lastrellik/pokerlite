@@ -39,17 +39,8 @@ function PokerTable({ tableId }) {
     return gameState.players?.find(p => p.pid === myPid)
   }, [gameState, myPid])
 
-  // Redirect to lobby if player busts out (loses all money)
-  // BUT only after the hand ends - don't redirect during all-in!
-  useEffect(() => {
-    if (myPlayer && myPlayer.stack === 0 && myPlayer.connected && !gameState?.hand_in_progress) {
-      // Give 3 seconds to see the final result before redirecting
-      const redirectTimer = setTimeout(() => {
-        navigate('/')
-      }, 3000)
-      return () => clearTimeout(redirectTimer)
-    }
-  }, [myPlayer, navigate, gameState?.hand_in_progress])
+  // Players with 0 chips stay as spectators instead of being kicked out
+  // They can add chips in the lobby and rejoin the table
 
   const otherPlayers = useMemo(() => {
     if (!gameState || !myPid) return []

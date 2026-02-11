@@ -3,10 +3,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 import os
+import logging
 from pathlib import Path
 
 from .routes.http import router as http_router
 from .routes.ws import router as ws_router
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(levelname)s:     %(message)s'
+)
 
 def create_app() -> FastAPI:
     app = FastAPI(title="PokerLite", version="1.0.0")

@@ -61,13 +61,12 @@ class TableState:
         from poker.constants import DEFAULT_STARTING_STACK
 
         if pid in self.players:
-            # Reconnecting player - keep their role and existing stack
+            # Reconnecting player
             p = self.players[pid]
             p.connected = True
             p.name = name
-            # Update stack if provided (for authenticated players)
-            if stack is not None and p.role == PlayerRole.SPECTATOR:
-                # Only update stack if they're rejoining and were spectator
+            # Update stack if provided (for authenticated players who bought more chips)
+            if stack is not None:
                 p.stack = stack
             return p
 
