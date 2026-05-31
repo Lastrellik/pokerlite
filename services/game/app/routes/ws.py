@@ -29,12 +29,14 @@ async def cleanup_empty_table(table_id: str) -> None:
     """Delete table from both game and lobby services if all players disconnected."""
     table = get_table(table_id)
 
-    # Debug: show connected players
+    # Debug: show all players and their connection status
+    all_players = [(p.name, p.connected, p.role.value) for p in table.players.values()]
     connected_players = [p.name for p in table.players.values() if p.connected]
-    logger.debug(f"[CLEANUP] Table {table_id} has {len(connected_players)} connected players: {connected_players}")
+    logger.info(f"[CLEANUP] Table {table_id} - Total players: {len(table.players)}, Connected: {len(connected_players)}")
+    logger.info(f"[CLEANUP] All players: {all_players}")
 
     if table.has_no_connected_players():
-        logger.info(f"[CLEANUP] Table {table_id} is empty, deleting...")
+        logger.info(f"[CLEANUP] Table {table_id} has no connected players, deleting...")
 
         # Delete from game service
         delete_table(table_id)

@@ -1,4 +1,4 @@
-.PHONY: test test-backend test-frontend install-backend install-frontend install
+.PHONY: test test-backend test-frontend install-backend install-frontend install dev stop
 
 # Run all tests
 test:
@@ -30,5 +30,8 @@ install-frontend:
 
 # Start development servers
 dev:
-	@echo "Start backend: cd server && source .venv/bin/activate && uvicorn app.main:app --reload"
-	@echo "Start frontend: cd poker-client && npm run dev"
+	@./dev-start.sh
+
+# Stop development servers
+stop:
+	@./dev-stop.sh
