@@ -18,6 +18,7 @@ build/
 poker-client/node_modules/
 poker-client/dist/
 poker-client/.vite/
+e2e-tests/node_modules/
 
 # IDEs
 .vscode/

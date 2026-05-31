@@ -11,6 +11,7 @@ export default function AdminPage() {
   const [error, setError] = useState('')
   const [editStacks, setEditStacks] = useState({})
   const [saving, setSaving] = useState({})
+  const [pendingDelete, setPendingDelete] = useState(new Set())
 
   const authToken = localStorage.getItem('auth_token')
 
@@ -77,6 +78,41 @@ export default function AdminPage() {
     }
   }
 
+  const handleDeleteClick = (userId) => {
+    setPendingDelete(prev => new Set([...prev, userId]))
+  }
+
+  const handleDeleteCancel = (userId) => {
+    setPendingDelete(prev => {
+      const next = new Set(prev)
+      next.delete(userId)
+      return next
+    })
+  }
+
+  const handleDeleteConfirm = async (userId) => {
+    try {
+      const res = await fetch(`${LOBBY_URL}/api/admin/users/${userId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${authToken}` },
+      })
+      if (res.status === 401 || res.status === 403) {
+        handleAuthError()
+        return
+      }
+      if (!res.ok) {
+        const data = await res.json()
+        setError(data.detail || `HTTP ${res.status}`)
+        handleDeleteCancel(userId)
+        return
+      }
+      await fetchUsers()
+    } catch (err) {
+      setError(err.message)
+      handleDeleteCancel(userId)
+    }
+  }
+
   const handleToggleAdmin = async (userId, currentIsAdmin) => {
     const endpoint = currentIsAdmin ? 'demote' : 'promote'
     try {
@@ -125,6 +161,7 @@ export default function AdminPage() {
                 <th>Email</th>
                 <th>Stack</th>
                 <th>Admin</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
@@ -165,6 +202,16 @@ export default function AdminPage() {
                       >
                         {user.is_admin ? 'Admin' : 'User'}
                       </button>
+                    </td>
+                    <td className="delete-cell">
+                      {pendingDelete.has(user.id) ? (
+                        <>
+                          <button className="btn-confirm-delete" onClick={() => handleDeleteConfirm(user.id)}>Confirm</button>
+                          <button className="btn-cancel-delete" onClick={() => handleDeleteCancel(user.id)}>Cancel</button>
+                        </>
+                      ) : (
+                        <button className="btn-delete" onClick={() => handleDeleteClick(user.id)}>Delete</button>
+                      )}
                     </td>
                   </tr>
                 )

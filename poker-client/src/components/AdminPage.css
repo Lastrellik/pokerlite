@@ -167,3 +167,56 @@
 .btn-toggle-admin:hover {
   opacity: 0.75;
 }
+
+.delete-cell {
+  white-space: nowrap;
+}
+
+.btn-delete {
+  background: transparent;
+  border: 1px solid #555;
+  color: #888;
+  padding: 0.3rem 0.7rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: all 0.2s;
+}
+
+.btn-delete:hover {
+  border-color: #ff5050;
+  color: #ff5050;
+}
+
+.btn-confirm-delete {
+  background: #ff5050;
+  border: none;
+  color: #fff;
+  padding: 0.3rem 0.7rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-right: 0.4rem;
+  transition: opacity 0.2s;
+}
+
+.btn-confirm-delete:hover {
+  opacity: 0.85;
+}
+
+.btn-cancel-delete {
+  background: transparent;
+  border: 1px solid #555;
+  color: #888;
+  padding: 0.3rem 0.7rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: all 0.2s;
+}
+
+.btn-cancel-delete:hover {
+  border-color: #aaa;
+  color: #aaa;
+}

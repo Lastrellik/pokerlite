@@ -26,7 +26,7 @@ export const config = {
     waitforTimeout: 10000,
     connectionRetryTimeout: 120000,
     connectionRetryCount: 3,
-    services: ['geckodriver'],
+    services: [['geckodriver', { geckodriverOptions: { allowSystemAccess: true } }]],
     framework: 'mocha',
     reporters: ['spec'],
     mochaOpts: {

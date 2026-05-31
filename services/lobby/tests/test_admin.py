@@ -515,3 +515,89 @@ class TestDemoteUser:
 
         assert response.status_code == 200
         assert response.json()["is_admin"] is False
+
+
+# ---------------------------------------------------------------------------
+# DELETE /api/admin/users/{id}
+# ---------------------------------------------------------------------------
+
+class TestDeleteUser:
+    """Test DELETE /api/admin/users/{user_id}."""
+
+    def _get_user_id(self, username):
+        db = next(override_get_db())
+        user = db.query(User).filter(User.username == username).first()
+        return user.id
+
+    def test_delete_requires_auth(self, client):
+        """Unauthenticated request is rejected with 401."""
+        response = client.delete("/api/admin/users/1")
+        assert response.status_code == 401
+
+    def test_delete_requires_admin(self, client):
+        """Non-admin receives 403."""
+        register_and_login(client, "alice", "password123")
+        token = register_and_login(client, "regular", "password123")
+        user_id = self._get_user_id("alice")
+
+        response = client.delete(f"/api/admin/users/{user_id}", headers=auth_headers(token))
+        assert response.status_code == 403
+
+    def test_delete_removes_user(self, client):
+        """Deleting a user removes them from the DB."""
+        register_and_login(client, "alice", "password123")
+        admin_token = register_and_login(client, "admin", "password123")
+        make_admin("admin")
+        user_id = self._get_user_id("alice")
+
+        response = client.delete(f"/api/admin/users/{user_id}", headers=auth_headers(admin_token))
+        assert response.status_code == 204
+
+        db = next(override_get_db())
+        user = db.query(User).filter(User.id == user_id).first()
+        assert user is None
+
+    def test_delete_removes_user_stack(self, client):
+        """Deleting a user also removes their stack row (cascade)."""
+        register_and_login(client, "alice", "password123")
+        admin_token = register_and_login(client, "admin", "password123")
+        make_admin("admin")
+        user_id = self._get_user_id("alice")
+
+        response = client.delete(f"/api/admin/users/{user_id}", headers=auth_headers(admin_token))
+        assert response.status_code == 204
+
+        db = next(override_get_db())
+        stack = db.query(PlayerStack).filter(PlayerStack.user_id == user_id).first()
+        assert stack is None
+
+    def test_delete_self_returns_400(self, client):
+        """Admin cannot delete themselves."""
+        admin_token = register_and_login(client, "admin", "password123")
+        make_admin("admin")
+        admin_id = self._get_user_id("admin")
+
+        response = client.delete(f"/api/admin/users/{admin_id}", headers=auth_headers(admin_token))
+        assert response.status_code == 400
+        assert "delete yourself" in response.json()["detail"].lower()
+
+    def test_delete_unknown_user_returns_404(self, client):
+        """Non-existent user ID returns 404."""
+        admin_token = register_and_login(client, "admin", "password123")
+        make_admin("admin")
+
+        response = client.delete("/api/admin/users/99999", headers=auth_headers(admin_token))
+        assert response.status_code == 404
+
+    def test_delete_user_no_longer_appears_in_list(self, client):
+        """Deleted user does not appear in GET /api/admin/users."""
+        register_and_login(client, "alice", "password123")
+        admin_token = register_and_login(client, "admin", "password123")
+        make_admin("admin")
+        user_id = self._get_user_id("alice")
+
+        client.delete(f"/api/admin/users/{user_id}", headers=auth_headers(admin_token))
+
+        response = client.get("/api/admin/users", headers=auth_headers(admin_token))
+        usernames = [u["username"] for u in response.json()]
+        assert "alice" not in usernames
