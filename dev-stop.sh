@@ -18,7 +18,4 @@ pkill -f "uvicorn.*8000" 2>/dev/null && echo "✅ Killed lobby on port 8000"
 pkill -f "uvicorn.*8001" 2>/dev/null && echo "✅ Killed game on port 8001"
 pkill -f "vite.*5173" 2>/dev/null && echo "✅ Killed frontend on port 5173"
 
-# Kill any tmux session too
-tmux kill-session -t pokerlite 2>/dev/null && echo "✅ Killed tmux session"
-
 echo "✅ All services stopped"
