@@ -48,6 +48,18 @@ def get_current_user(
     return user
 
 
+def get_current_admin(current_user: User = Depends(get_current_user)) -> User:
+    """
+    Dependency to require admin privileges.
+
+    Raises:
+        HTTPException: 403 if the current user is not an admin
+    """
+    if not current_user.is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
+    return current_user
+
+
 def get_optional_user(
     token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db)

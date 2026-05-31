@@ -49,6 +49,7 @@ export default function LoginModal({ onClose, onSuccess }) {
       localStorage.setItem('username', data.user.username)
       localStorage.setItem('user_id', data.user.id)
       localStorage.setItem('avatar_id', data.user.avatar_id)
+      localStorage.setItem('is_admin', data.is_admin ? 'true' : 'false')
 
       onSuccess(data)
     } catch (err) {

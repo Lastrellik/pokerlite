@@ -1,4 +1,5 @@
 """Authentication routes for user registration and login."""
+import os
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel, EmailStr, Field
@@ -37,6 +38,7 @@ class UserResponse(BaseModel):
     username: str
     email: Optional[str]
     avatar_id: str
+    is_admin: bool
 
     class Config:
         from_attributes = True
@@ -47,6 +49,7 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: str
     user: UserResponse
+    is_admin: bool
 
 
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
@@ -92,14 +95,15 @@ def register(user_data: UserRegister, db: Session = Depends(get_db)):
 
     # Create access token
     access_token = create_access_token(
-        data={"sub": new_user.username},
+        data={"sub": new_user.username, "is_admin": False},
         expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     )
 
     return TokenResponse(
         access_token=access_token,
         token_type="bearer",
-        user=UserResponse.from_orm(new_user)
+        user=UserResponse.from_orm(new_user),
+        is_admin=False
     )
 
 
@@ -134,18 +138,25 @@ def login(
     # Update last login
     from datetime import datetime
     user.last_login = datetime.utcnow()
+
+    # Bootstrap admin: auto-promote if username matches ADMIN_USERNAME env var
+    admin_username = os.getenv("ADMIN_USERNAME")
+    if admin_username and user.username == admin_username and not user.is_admin:
+        user.is_admin = True
+
     db.commit()
 
     # Create access token
     access_token = create_access_token(
-        data={"sub": user.username},
+        data={"sub": user.username, "is_admin": user.is_admin},
         expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     )
 
     return TokenResponse(
         access_token=access_token,
         token_type="bearer",
-        user=UserResponse.from_orm(user)
+        user=UserResponse.from_orm(user),
+        is_admin=user.is_admin
     )
 
 

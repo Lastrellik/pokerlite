@@ -7,6 +7,7 @@ from pathlib import Path
 
 from .routes.tables import router as tables_router
 from .routes.auth import router as auth_router
+from .routes.admin import router as admin_router
 
 
 def create_app() -> FastAPI:
@@ -30,6 +31,7 @@ def create_app() -> FastAPI:
     # Include routers
     app.include_router(auth_router)
     app.include_router(tables_router)
+    app.include_router(admin_router)
 
     # Mount static files for avatars
     static_dir = Path(__file__).parent.parent / "static"

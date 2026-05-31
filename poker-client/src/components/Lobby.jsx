@@ -2,7 +2,7 @@
  * Lobby component - displays list of tables and allows creation/joining.
  */
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useLobby } from '../hooks/useLobby'
 import CreateTableModal from './CreateTableModal'
 import LoginModal from './LoginModal'
@@ -32,6 +32,7 @@ export default function Lobby() {
   const [authToken, setAuthToken] = useState(null)
   const [authUsername, setAuthUsername] = useState(null)
   const [chipCount, setChipCount] = useState(null)
+  const [isAdmin, setIsAdmin] = useState(false)
 
   const LOBBY_URL = import.meta.env.VITE_LOBBY_URL || 'http://localhost:8000'
 
@@ -54,6 +55,7 @@ export default function Lobby() {
         // Token valid, set state
         setAuthToken(token)
         setAuthUsername(username)
+        setIsAdmin(localStorage.getItem('is_admin') === 'true')
       }
     }
   }, [])
@@ -82,9 +84,11 @@ export default function Lobby() {
               localStorage.removeItem('username')
               localStorage.removeItem('user_id')
               localStorage.removeItem('avatar_id')
+              localStorage.removeItem('is_admin')
               setAuthToken(null)
               setAuthUsername(null)
               setChipCount(null)
+              setIsAdmin(false)
             }
             throw new Error(`HTTP ${res.status}`)
           }
@@ -103,13 +107,15 @@ export default function Lobby() {
     }
   }, [authToken, authUsername, LOBBY_URL])
 
-  const handleLoginSuccess = (token, username, userId, avatarId) => {
+  const handleLoginSuccess = (token, username, userId, avatarId, adminFlag) => {
     setAuthToken(token)
     setAuthUsername(username)
+    setIsAdmin(adminFlag === true)
     localStorage.setItem('auth_token', token)
     localStorage.setItem('username', username)
     localStorage.setItem('user_id', userId)
     localStorage.setItem('avatar_id', avatarId)
+    localStorage.setItem('is_admin', adminFlag ? 'true' : 'false')
     setShowLoginModal(false)
   }
 
@@ -117,10 +123,12 @@ export default function Lobby() {
     setAuthToken(null)
     setAuthUsername(null)
     setChipCount(null)
+    setIsAdmin(false)
     localStorage.removeItem('auth_token')
     localStorage.removeItem('username')
     localStorage.removeItem('user_id')
     localStorage.removeItem('avatar_id')
+    localStorage.removeItem('is_admin')
   }
 
   const handleJoinTable = (tableId) => {
@@ -137,6 +145,9 @@ export default function Lobby() {
               <span className="auth-username">{authUsername}</span>
               {chipCount !== null && (
                 <span className="chip-count">💰 {chipCount} chips</span>
+              )}
+              {isAdmin && (
+                <Link to="/admin" className="btn-admin">Admin</Link>
               )}
               <button onClick={handleLogout} className="btn-logout">
                 Logout
@@ -208,7 +219,7 @@ export default function Lobby() {
         <LoginModal
           onClose={() => setShowLoginModal(false)}
           onSuccess={(data) => {
-            handleLoginSuccess(data.access_token, data.user.username, data.user.id, data.user.avatar_id)
+            handleLoginSuccess(data.access_token, data.user.username, data.user.id, data.user.avatar_id, data.is_admin)
           }}
         />
       )}

@@ -1,6 +1,6 @@
 """Database models for users and player stacks."""
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Index
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Index, Boolean
 from sqlalchemy.orm import relationship
 from .base import Base
 
@@ -17,6 +17,7 @@ class User(Base):
     avatar_id = Column(String(50), default="chips", nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     last_login = Column(DateTime, nullable=True)
+    is_admin = Column(Boolean, default=False, nullable=False)
 
     # Relationship to player stacks
     stacks = relationship("PlayerStack", back_populates="user", cascade="all, delete-orphan")
