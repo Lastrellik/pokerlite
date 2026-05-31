@@ -64,6 +64,74 @@
   padding: 3rem;
 }
 
+.admin-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.admin-search-input {
+  flex: 1;
+  max-width: 320px;
+  background: #13132a;
+  border: 1px solid #2a2a4a;
+  color: #e0e0e0;
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.admin-search-input:focus {
+  outline: none;
+  border-color: #00f5ff;
+}
+
+.admin-search-input::placeholder {
+  color: #555;
+}
+
+.admin-user-count {
+  color: #666;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.admin-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+  margin-top: 1.5rem;
+}
+
+.btn-page {
+  background: transparent;
+  border: 1px solid #2a2a4a;
+  color: #e0e0e0;
+  padding: 0.4rem 0.9rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s;
+}
+
+.btn-page:hover:not(:disabled) {
+  border-color: #00f5ff;
+  color: #00f5ff;
+}
+
+.btn-page:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.admin-page-info {
+  color: #888;
+  font-size: 0.85rem;
+}
+
 .admin-table-wrap {
   overflow-x: auto;
 }

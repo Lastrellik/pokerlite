@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import './AdminPage.css'
 
 const LOBBY_URL = import.meta.env.VITE_LOBBY_URL || 'http://localhost:8000'
+const PAGE_SIZE = 20
 
 export default function AdminPage() {
   const navigate = useNavigate()
@@ -12,6 +13,11 @@ export default function AdminPage() {
   const [editStacks, setEditStacks] = useState({})
   const [saving, setSaving] = useState({})
   const [pendingDelete, setPendingDelete] = useState(new Set())
+  const [searchInput, setSearchInput] = useState('')
+  const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
+  const [total, setTotal] = useState(0)
+  const [pages, setPages] = useState(1)
 
   const authToken = localStorage.getItem('auth_token')
 
@@ -19,9 +25,12 @@ export default function AdminPage() {
     navigate('/')
   }, [navigate])
 
-  const fetchUsers = useCallback(async () => {
+  const fetchUsers = useCallback(async (pageNum, searchTerm) => {
+    setLoading(true)
     try {
-      const res = await fetch(`${LOBBY_URL}/api/admin/users`, {
+      const params = new URLSearchParams({ page: pageNum, page_size: PAGE_SIZE })
+      if (searchTerm) params.set('search', searchTerm)
+      const res = await fetch(`${LOBBY_URL}/api/admin/users?${params}`, {
         headers: { Authorization: `Bearer ${authToken}` },
       })
       if (res.status === 401 || res.status === 403) {
@@ -30,8 +39,11 @@ export default function AdminPage() {
       }
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data = await res.json()
-      setUsers(data)
+      setUsers(data.users)
+      setTotal(data.total)
+      setPages(data.pages)
       setEditStacks({})
+      setPendingDelete(new Set())
     } catch (err) {
       setError(err.message)
     } finally {
@@ -39,13 +51,23 @@ export default function AdminPage() {
     }
   }, [authToken, handleAuthError])
 
+  // Debounce search input — reset to page 1 when search changes
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearch(searchInput)
+      setPage(1)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [searchInput])
+
+  // Fetch whenever page or debounced search changes
   useEffect(() => {
     if (localStorage.getItem('is_admin') !== 'true') {
       navigate('/')
       return
     }
-    fetchUsers()
-  }, [navigate, fetchUsers])
+    fetchUsers(page, search)
+  }, [navigate, fetchUsers, page, search])
 
   const handleStackChange = (userId, value) => {
     setEditStacks(prev => ({ ...prev, [userId]: value }))
@@ -70,11 +92,33 @@ export default function AdminPage() {
         return
       }
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      await fetchUsers()
+      await fetchUsers(page, search)
     } catch (err) {
       setError(err.message)
     } finally {
       setSaving(prev => ({ ...prev, [userId]: false }))
+    }
+  }
+
+  const handleToggleAdmin = async (userId, currentIsAdmin) => {
+    const endpoint = currentIsAdmin ? 'demote' : 'promote'
+    try {
+      const res = await fetch(`${LOBBY_URL}/api/admin/users/${userId}/${endpoint}`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${authToken}` },
+      })
+      if (res.status === 401 || res.status === 403) {
+        handleAuthError()
+        return
+      }
+      if (!res.ok) {
+        const data = await res.json()
+        setError(data.detail || `HTTP ${res.status}`)
+        return
+      }
+      await fetchUsers(page, search)
+    } catch (err) {
+      setError(err.message)
     }
   }
 
@@ -106,32 +150,10 @@ export default function AdminPage() {
         handleDeleteCancel(userId)
         return
       }
-      await fetchUsers()
+      await fetchUsers(page, search)
     } catch (err) {
       setError(err.message)
       handleDeleteCancel(userId)
-    }
-  }
-
-  const handleToggleAdmin = async (userId, currentIsAdmin) => {
-    const endpoint = currentIsAdmin ? 'demote' : 'promote'
-    try {
-      const res = await fetch(`${LOBBY_URL}/api/admin/users/${userId}/${endpoint}`, {
-        method: 'PATCH',
-        headers: { Authorization: `Bearer ${authToken}` },
-      })
-      if (res.status === 401 || res.status === 403) {
-        handleAuthError()
-        return
-      }
-      if (!res.ok) {
-        const data = await res.json()
-        setError(data.detail || `HTTP ${res.status}`)
-        return
-      }
-      await fetchUsers()
-    } catch (err) {
-      setError(err.message)
     }
   }
 
@@ -149,76 +171,115 @@ export default function AdminPage() {
         </div>
       )}
 
+      <div className="admin-controls">
+        <input
+          type="text"
+          className="admin-search-input"
+          placeholder="Search by username or email…"
+          value={searchInput}
+          onChange={e => setSearchInput(e.target.value)}
+        />
+        {!loading && (
+          <span className="admin-user-count">
+            {total} {total === 1 ? 'user' : 'users'}{search ? ' found' : ''}
+          </span>
+        )}
+      </div>
+
       {loading ? (
         <div className="admin-loading">Loading users...</div>
+      ) : users.length === 0 ? (
+        <div className="admin-loading">No users found.</div>
       ) : (
-        <div className="admin-table-wrap">
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Username</th>
-                <th>Email</th>
-                <th>Stack</th>
-                <th>Admin</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map(user => {
-                const editedStack = editStacks[user.id]
-                const originalStack = user.stack ?? 0
-                const stackValue = editedStack !== undefined ? editedStack : originalStack
-                const isDirty = editedStack !== undefined && parseInt(editedStack, 10) !== originalStack
+        <>
+          <div className="admin-table-wrap">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Username</th>
+                  <th>Email</th>
+                  <th>Stack</th>
+                  <th>Admin</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map(user => {
+                  const editedStack = editStacks[user.id]
+                  const originalStack = user.stack ?? 0
+                  const stackValue = editedStack !== undefined ? editedStack : originalStack
+                  const isDirty = editedStack !== undefined && parseInt(editedStack, 10) !== originalStack
 
-                return (
-                  <tr key={user.id}>
-                    <td>{user.id}</td>
-                    <td>{user.username}</td>
-                    <td>{user.email || <span className="admin-none">—</span>}</td>
-                    <td className="stack-cell">
-                      <input
-                        type="number"
-                        className="stack-input"
-                        value={stackValue}
-                        min={0}
-                        max={10000000}
-                        onChange={e => handleStackChange(user.id, e.target.value)}
-                      />
-                      {isDirty && (
+                  return (
+                    <tr key={user.id}>
+                      <td>{user.id}</td>
+                      <td>{user.username}</td>
+                      <td>{user.email || <span className="admin-none">—</span>}</td>
+                      <td className="stack-cell">
+                        <input
+                          type="number"
+                          className="stack-input"
+                          value={stackValue}
+                          min={0}
+                          max={10000000}
+                          onChange={e => handleStackChange(user.id, e.target.value)}
+                        />
+                        {isDirty && (
+                          <button
+                            className="btn-save"
+                            disabled={saving[user.id]}
+                            onClick={() => handleSaveStack(user.id, originalStack)}
+                          >
+                            {saving[user.id] ? '...' : 'Save'}
+                          </button>
+                        )}
+                      </td>
+                      <td>
                         <button
-                          className="btn-save"
-                          disabled={saving[user.id]}
-                          onClick={() => handleSaveStack(user.id, originalStack)}
+                          className={`btn-toggle-admin ${user.is_admin ? 'is-admin' : ''}`}
+                          onClick={() => handleToggleAdmin(user.id, user.is_admin)}
                         >
-                          {saving[user.id] ? '...' : 'Save'}
+                          {user.is_admin ? 'Admin' : 'User'}
                         </button>
-                      )}
-                    </td>
-                    <td>
-                      <button
-                        className={`btn-toggle-admin ${user.is_admin ? 'is-admin' : ''}`}
-                        onClick={() => handleToggleAdmin(user.id, user.is_admin)}
-                      >
-                        {user.is_admin ? 'Admin' : 'User'}
-                      </button>
-                    </td>
-                    <td className="delete-cell">
-                      {pendingDelete.has(user.id) ? (
-                        <>
-                          <button className="btn-confirm-delete" onClick={() => handleDeleteConfirm(user.id)}>Confirm</button>
-                          <button className="btn-cancel-delete" onClick={() => handleDeleteCancel(user.id)}>Cancel</button>
-                        </>
-                      ) : (
-                        <button className="btn-delete" onClick={() => handleDeleteClick(user.id)}>Delete</button>
-                      )}
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
+                      </td>
+                      <td className="delete-cell">
+                        {pendingDelete.has(user.id) ? (
+                          <>
+                            <button className="btn-confirm-delete" onClick={() => handleDeleteConfirm(user.id)}>Confirm</button>
+                            <button className="btn-cancel-delete" onClick={() => handleDeleteCancel(user.id)}>Cancel</button>
+                          </>
+                        ) : (
+                          <button className="btn-delete" onClick={() => handleDeleteClick(user.id)}>Delete</button>
+                        )}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {pages > 1 && (
+            <div className="admin-pagination">
+              <button
+                className="btn-page"
+                disabled={page <= 1}
+                onClick={() => setPage(p => p - 1)}
+              >
+                ← Prev
+              </button>
+              <span className="admin-page-info">Page {page} of {pages}</span>
+              <button
+                className="btn-page"
+                disabled={page >= pages}
+                onClick={() => setPage(p => p + 1)}
+              >
+                Next →
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   )

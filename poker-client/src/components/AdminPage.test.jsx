@@ -20,6 +20,10 @@ const SAMPLE_USERS = [
   { id: 3, username: 'admin', email: 'admin@example.com', is_admin: true, stack: 2500 },
 ]
 
+function pagedResponse(users = SAMPLE_USERS, { page = 1, pages = 1 } = {}) {
+  return { users, total: users.length, page, page_size: 20, pages }
+}
+
 function renderAdmin() {
   return render(
     <BrowserRouter>
@@ -57,7 +61,7 @@ describe('AdminPage — access control', () => {
     global.fetch.mockResolvedValueOnce({
       ok: true,
       status: 200,
-      json: async () => SAMPLE_USERS,
+      json: async () => pagedResponse(),
     })
 
     renderAdmin()
@@ -82,7 +86,7 @@ describe('AdminPage — user table rendering', () => {
     global.fetch.mockResolvedValueOnce({
       ok: true,
       status: 200,
-      json: async () => [],
+      json: async () => pagedResponse([]),
     })
 
     renderAdmin()
@@ -100,7 +104,7 @@ describe('AdminPage — user table rendering', () => {
     global.fetch.mockResolvedValueOnce({
       ok: true,
       status: 200,
-      json: async () => SAMPLE_USERS,
+      json: async () => pagedResponse(),
     })
 
     renderAdmin()
@@ -116,7 +120,7 @@ describe('AdminPage — user table rendering', () => {
     global.fetch.mockResolvedValueOnce({
       ok: true,
       status: 200,
-      json: async () => SAMPLE_USERS,
+      json: async () => pagedResponse(),
     })
 
     renderAdmin()
@@ -131,7 +135,7 @@ describe('AdminPage — user table rendering', () => {
     global.fetch.mockResolvedValueOnce({
       ok: true,
       status: 200,
-      json: async () => SAMPLE_USERS,
+      json: async () => pagedResponse(),
     })
 
     renderAdmin()
@@ -147,7 +151,7 @@ describe('AdminPage — user table rendering', () => {
     global.fetch.mockResolvedValueOnce({
       ok: true,
       status: 200,
-      json: async () => SAMPLE_USERS,
+      json: async () => pagedResponse(),
     })
 
     renderAdmin()
@@ -165,7 +169,7 @@ describe('AdminPage — user table rendering', () => {
     global.fetch.mockResolvedValueOnce({
       ok: true,
       status: 200,
-      json: async () => [],
+      json: async () => pagedResponse([]),
     })
 
     renderAdmin()
@@ -200,7 +204,7 @@ describe('AdminPage — stack editing', () => {
     global.fetch.mockResolvedValueOnce({
       ok: true,
       status: 200,
-      json: async () => SAMPLE_USERS,
+      json: async () => pagedResponse(),
     })
 
     renderAdmin()
@@ -216,7 +220,7 @@ describe('AdminPage — stack editing', () => {
     global.fetch.mockResolvedValueOnce({
       ok: true,
       status: 200,
-      json: async () => SAMPLE_USERS,
+      json: async () => pagedResponse(),
     })
 
     renderAdmin()
@@ -235,9 +239,9 @@ describe('AdminPage — stack editing', () => {
 
   it('Save button calls PATCH stack endpoint', async () => {
     global.fetch
-      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => SAMPLE_USERS })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => pagedResponse() })
       .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ user_id: 1, stack: 9999 }) })
-      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => SAMPLE_USERS }) // refetch
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => pagedResponse() }) // refetch
 
     renderAdmin()
 
@@ -265,9 +269,9 @@ describe('AdminPage — stack editing', () => {
 
   it('refetches user list after saving stack', async () => {
     global.fetch
-      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => SAMPLE_USERS })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => pagedResponse() })
       .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ user_id: 1, stack: 9999 }) })
-      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => SAMPLE_USERS }) // refetch
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => pagedResponse() }) // refetch
 
     renderAdmin()
 
@@ -305,7 +309,7 @@ describe('AdminPage — admin toggle', () => {
     global.fetch.mockResolvedValueOnce({
       ok: true,
       status: 200,
-      json: async () => SAMPLE_USERS,
+      json: async () => pagedResponse(),
     })
 
     renderAdmin()
@@ -322,9 +326,9 @@ describe('AdminPage — admin toggle', () => {
 
   it('clicking "User" button calls promote endpoint', async () => {
     global.fetch
-      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => SAMPLE_USERS })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => pagedResponse() })
       .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ user_id: 1, is_admin: true }) })
-      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => SAMPLE_USERS }) // refetch
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => pagedResponse() }) // refetch
 
     renderAdmin()
 
@@ -345,9 +349,9 @@ describe('AdminPage — admin toggle', () => {
 
   it('clicking "Admin" button calls demote endpoint', async () => {
     global.fetch
-      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => SAMPLE_USERS })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => pagedResponse() })
       .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ user_id: 3, is_admin: false }) })
-      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => SAMPLE_USERS }) // refetch
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => pagedResponse() }) // refetch
 
     renderAdmin()
 
@@ -367,9 +371,9 @@ describe('AdminPage — admin toggle', () => {
 
   it('refetches user list after admin toggle', async () => {
     global.fetch
-      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => SAMPLE_USERS })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => pagedResponse() })
       .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ user_id: 1, is_admin: true }) })
-      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => SAMPLE_USERS })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => pagedResponse() })
 
     renderAdmin()
 
@@ -386,7 +390,7 @@ describe('AdminPage — admin toggle', () => {
 
   it('shows error message on demote 400 (cannot demote self)', async () => {
     global.fetch
-      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => SAMPLE_USERS })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => pagedResponse() })
       .mockResolvedValueOnce({
         ok: false,
         status: 400,

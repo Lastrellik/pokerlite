@@ -1,6 +1,9 @@
 """Admin routes for managing users and chip balances."""
-from fastapi import APIRouter, Depends, HTTPException, status
+import math
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from typing import List, Optional
 
@@ -22,20 +25,41 @@ class UserAdminResponse(BaseModel):
         from_attributes = True
 
 
+class UserListResponse(BaseModel):
+    """Paginated user list response."""
+    users: List[UserAdminResponse]
+    total: int
+    page: int
+    page_size: int
+    pages: int
+
+
 class SetStackRequest(BaseModel):
     """Request to set a user's chip stack."""
     stack: int = Field(..., ge=0, le=10_000_000)
 
 
-@router.get("/users", response_model=List[UserAdminResponse])
+@router.get("/users", response_model=UserListResponse)
 def list_users(
+    search: Optional[str] = Query(None),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
     admin: User = Depends(get_current_admin),
 ):
-    """List all users with their current chip stacks."""
-    users = db.query(User).order_by(User.username).all()
+    """List users with optional search and pagination."""
+    query = db.query(User)
+    if search:
+        pattern = f"%{search}%"
+        query = query.filter(or_(
+            User.username.ilike(pattern),
+            User.email.ilike(pattern),
+        ))
+    total = query.count()
+    users_page = query.order_by(User.username).offset((page - 1) * page_size).limit(page_size).all()
+
     result = []
-    for user in users:
+    for user in users_page:
         stack_row = db.query(PlayerStack).filter(PlayerStack.user_id == user.id).first()
         result.append(UserAdminResponse(
             id=user.id,
@@ -44,7 +68,9 @@ def list_users(
             is_admin=user.is_admin,
             stack=stack_row.stack if stack_row else None,
         ))
-    return result
+
+    pages = math.ceil(total / page_size) if total > 0 else 1
+    return UserListResponse(users=result, total=total, page=page, page_size=page_size, pages=pages)
 
 
 @router.patch("/users/{user_id}/stack")

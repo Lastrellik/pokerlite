@@ -164,7 +164,7 @@ class TestListUsers:
         assert "admin" in response.json()["detail"].lower()
 
     def test_list_users_returns_all_users(self, client):
-        """Admin gets a list of all users."""
+        """Admin gets a paginated list of all users."""
         register_and_login(client, "alice", "password123")
         register_and_login(client, "bob", "password123")
         admin_token = register_and_login(client, "admin", "password123")
@@ -173,10 +173,23 @@ class TestListUsers:
         response = client.get("/api/admin/users", headers=auth_headers(admin_token))
         assert response.status_code == 200
         data = response.json()
-        usernames = [u["username"] for u in data]
+        usernames = [u["username"] for u in data["users"]]
         assert "alice" in usernames
         assert "bob" in usernames
         assert "admin" in usernames
+
+    def test_list_users_returns_pagination_metadata(self, client):
+        """Response includes total, page, page_size, and pages fields."""
+        register_and_login(client, "alice", "password123")
+        admin_token = register_and_login(client, "admin", "password123")
+        make_admin("admin")
+
+        response = client.get("/api/admin/users", headers=auth_headers(admin_token))
+        data = response.json()
+        assert data["total"] == 2
+        assert data["page"] == 1
+        assert data["page_size"] == 20
+        assert data["pages"] == 1
 
     def test_list_users_includes_stack(self, client):
         """Each user entry includes their chip stack."""
@@ -186,7 +199,7 @@ class TestListUsers:
 
         response = client.get("/api/admin/users", headers=auth_headers(admin_token))
         assert response.status_code == 200
-        alice = next(u for u in response.json() if u["username"] == "alice")
+        alice = next(u for u in response.json()["users"] if u["username"] == "alice")
         assert alice["stack"] == 1000  # Default starting stack
 
     def test_list_users_includes_is_admin_flag(self, client):
@@ -196,7 +209,7 @@ class TestListUsers:
         make_admin("admin")
 
         response = client.get("/api/admin/users", headers=auth_headers(admin_token))
-        data = response.json()
+        data = response.json()["users"]
         regular = next(u for u in data if u["username"] == "regular")
         admin_user = next(u for u in data if u["username"] == "admin")
         assert regular["is_admin"] is False
@@ -214,8 +227,116 @@ class TestListUsers:
         db.commit()
 
         response = client.get("/api/admin/users", headers=auth_headers(admin_token))
-        nostack = next(u for u in response.json() if u["username"] == "nostack")
+        nostack = next(u for u in response.json()["users"] if u["username"] == "nostack")
         assert nostack["stack"] is None
+
+
+# ---------------------------------------------------------------------------
+# GET /api/admin/users — pagination and search
+# ---------------------------------------------------------------------------
+
+class TestListUsersPaginationSearch:
+    """Test pagination and search on GET /api/admin/users."""
+
+    def _setup_users(self, client, names):
+        """Register a list of users and return admin token."""
+        for name in names:
+            register_and_login(client, name, "password123")
+        admin_token = register_and_login(client, "zzadmin", "password123")
+        make_admin("zzadmin")
+        return admin_token
+
+    def test_page_size_limits_results(self, client):
+        """page_size param limits the number of users returned."""
+        names = [f"user{i:02d}" for i in range(5)]
+        admin_token = self._setup_users(client, names)
+
+        response = client.get(
+            "/api/admin/users?page=1&page_size=3",
+            headers=auth_headers(admin_token),
+        )
+        data = response.json()
+        assert len(data["users"]) == 3
+        assert data["total"] == 6  # 5 users + 1 admin
+        assert data["pages"] == 2
+
+    def test_page_2_returns_next_batch(self, client):
+        """page=2 returns the second batch of users."""
+        names = [f"user{i:02d}" for i in range(5)]
+        admin_token = self._setup_users(client, names)
+
+        page1 = client.get("/api/admin/users?page=1&page_size=3", headers=auth_headers(admin_token)).json()
+        page2 = client.get("/api/admin/users?page=2&page_size=3", headers=auth_headers(admin_token)).json()
+
+        names_p1 = {u["username"] for u in page1["users"]}
+        names_p2 = {u["username"] for u in page2["users"]}
+        assert len(names_p2) == 3
+        assert names_p1.isdisjoint(names_p2)
+
+    def test_search_by_username(self, client):
+        """search param filters by username."""
+        admin_token = self._setup_users(client, ["alice", "bob", "alicia"])
+
+        response = client.get(
+            "/api/admin/users?search=ali",
+            headers=auth_headers(admin_token),
+        )
+        data = response.json()
+        usernames = [u["username"] for u in data["users"]]
+        assert "alice" in usernames
+        assert "alicia" in usernames
+        assert "bob" not in usernames
+
+    def test_search_by_email(self, client):
+        """search param filters by email."""
+        admin_token = register_and_login(client, "zzadmin", "password123")
+        make_admin("zzadmin")
+
+        db = next(override_get_db())
+        db.add(User(username="emailuser", email="unique@domain.com", password_hash="x", avatar_id="chips"))
+        db.add(User(username="noemail", email=None, password_hash="x", avatar_id="chips"))
+        db.commit()
+
+        response = client.get(
+            "/api/admin/users?search=unique",
+            headers=auth_headers(admin_token),
+        )
+        usernames = [u["username"] for u in response.json()["users"]]
+        assert "emailuser" in usernames
+        assert "noemail" not in usernames
+
+    def test_search_no_results(self, client):
+        """search with no match returns empty list and total=0."""
+        admin_token = self._setup_users(client, ["alice"])
+
+        response = client.get(
+            "/api/admin/users?search=zzznomatch",
+            headers=auth_headers(admin_token),
+        )
+        data = response.json()
+        assert data["users"] == []
+        assert data["total"] == 0
+
+    def test_search_is_case_insensitive(self, client):
+        """Username search is case-insensitive."""
+        admin_token = self._setup_users(client, ["Alice"])
+
+        response = client.get(
+            "/api/admin/users?search=alice",
+            headers=auth_headers(admin_token),
+        )
+        usernames = [u["username"] for u in response.json()["users"]]
+        assert "Alice" in usernames
+
+    def test_empty_db_returns_one_page(self, client):
+        """With no users, pages=1 (not 0)."""
+        admin_token = register_and_login(client, "zzadmin", "password123")
+        make_admin("zzadmin")
+
+        response = client.get("/api/admin/users?search=zzznomatch", headers=auth_headers(admin_token))
+        data = response.json()
+        assert data["pages"] == 1
+        assert data["total"] == 0
 
 
 # ---------------------------------------------------------------------------
@@ -599,5 +720,5 @@ class TestDeleteUser:
         client.delete(f"/api/admin/users/{user_id}", headers=auth_headers(admin_token))
 
         response = client.get("/api/admin/users", headers=auth_headers(admin_token))
-        usernames = [u["username"] for u in response.json()]
+        usernames = [u["username"] for u in response.json()["users"]]
         assert "alice" not in usernames
